@@ -5,9 +5,10 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 builder.Services.AddControllers();
+
 builder.Services.AddEndpointsApiExplorer();
+
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlServer(Environment.GetEnvironmentVariable("BIDUP_DB_CONNECTION_STRING")));
@@ -26,9 +27,31 @@ builder.Services.AddIdentity<User, IdentityRole<int>>(options =>
 .AddEntityFrameworkStores<AppDbContext>()
 .AddDefaultTokenProviders();
 
+
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Apply Migrations that hasn't been applied and seed roles and admin users
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        var appDbContext = services.GetRequiredService<AppDbContext>();
+        await appDbContext.Database.MigrateAsync();
+
+        var roleManager = services.GetRequiredService<RoleManager<IdentityRole<int>>>();
+        await roleManager.SeedRoles();
+
+        var userManager = services.GetRequiredService<UserManager<User>>();
+        await userManager.SeedAdminAccounts();
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex.Message);
+    }
+}
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
