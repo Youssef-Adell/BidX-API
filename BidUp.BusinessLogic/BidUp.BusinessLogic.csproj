@@ -2,6 +2,9 @@
   <ItemGroup>
     <ProjectReference Include="..\BidUp.DataAccess\BidUp.DataAccess.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Humanizer" Version="2.14.1" />
+  </ItemGroup>
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>

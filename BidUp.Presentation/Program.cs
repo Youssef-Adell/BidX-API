@@ -1,3 +1,4 @@
+using BidUp.BusinessLogic.Services;
 using BidUp.DataAccess;
 using BidUp.DataAccess.Entites;
 using Microsoft.AspNetCore.Identity;
@@ -26,6 +27,8 @@ builder.Services.AddIdentity<User, IdentityRole<int>>(options =>
 })
 .AddEntityFrameworkStores<AppDbContext>()
 .AddDefaultTokenProviders();
+
+builder.Services.AddScoped<IAuthService, AuthService>();
 
 
 var app = builder.Build();
