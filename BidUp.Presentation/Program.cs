@@ -1,12 +1,30 @@
+using BidUp.BusinessLogic.DTOs.CommonDTOs;
 using BidUp.BusinessLogic.Services;
 using BidUp.DataAccess;
 using BidUp.DataAccess.Entites;
+using Humanizer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
+
+// Modify the default behaviour of [APIController] Attribute to return a customized error response instead of the default response to unify error responses accross the api
+builder.Services.Configure<ApiBehaviorOptions>(options =>
+{
+    options.InvalidModelStateResponseFactory = actionContext =>
+    {
+        var validationErrors = actionContext.ModelState.Values
+            .Where(stateEntry => stateEntry.Errors.Count > 0)
+            .SelectMany(stateEntry => stateEntry.Errors);
+
+        var errorResponse = new ErrorResponse(ErrorCode.USER_INPUT_INVALID_SYNTAX, validationErrors.Humanize(e => e.ErrorMessage));
+
+        return new BadRequestObjectResult(errorResponse);
+    };
+});
 
 builder.Services.AddEndpointsApiExplorer();
 
@@ -29,6 +47,7 @@ builder.Services.AddIdentity<User, IdentityRole<int>>(options =>
 .AddDefaultTokenProviders();
 
 builder.Services.AddScoped<IAuthService, AuthService>();
+
 
 
 var app = builder.Build();
