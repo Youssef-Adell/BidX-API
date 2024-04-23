@@ -17,13 +17,18 @@ public static class AppDbInitializer
 
     public static async Task SeedAdminAccounts(this UserManager<User> userManager)
     {
-        var userName = Environment.GetEnvironmentVariable("BIDUP_ADMIN_NAME");
         var email = Environment.GetEnvironmentVariable("BIDUP_ADMIN_EMAIL");
         var password = Environment.GetEnvironmentVariable("BIDUP_ADMIN_PASSWORD");
 
         if (await userManager.FindByEmailAsync(email!) == null)
         {
-            var admin = new User { UserName = userName, Email = email };
+            var admin = new User
+            {
+                FirstName = "BidUp",
+                LastName = "Admin",
+                UserName = email,
+                Email = email
+            };
             await userManager.CreateAsync(admin, password!);
             await userManager.AddToRoleAsync(admin, "Admin");
         }
