@@ -47,7 +47,7 @@ builder.Services.AddIdentity<User, IdentityRole<int>>(options =>
 .AddDefaultTokenProviders();
 
 builder.Services.AddScoped<IAuthService, AuthService>();
-
+builder.Services.AddScoped<IEmailService, BrevoEmailService>();
 
 
 var app = builder.Build();
