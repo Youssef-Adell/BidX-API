@@ -35,9 +35,9 @@ builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlServer(Envi
 // Identity (Add and configure Services To Manage, Create and Validate Users)
 builder.Services.AddIdentity<User, IdentityRole<int>>(options =>
 {
-    options.Password.RequireLowercase = false;
-    options.Password.RequireUppercase = false;
     options.Password.RequireNonAlphanumeric = false;
+    options.Password.RequireLowercase = false;
+    options.Password.RequireDigit = false;
     options.Password.RequiredLength = 8;
     options.User.RequireUniqueEmail = true;
     options.Lockout.AllowedForNewUsers = true;
