@@ -1,5 +1,6 @@
 using BidUp.BusinessLogic.DTOs.AuthDTOs;
 using BidUp.BusinessLogic.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BidUp.Presentation.Controllers;
@@ -57,5 +58,16 @@ public class AuthController : ControllerBase
             html = await System.IO.File.ReadAllTextAsync(@"./wwwroot/pages/confirmation-faild.html");
 
         return Content(html, "text/html");
+    }
+
+    [HttpPost("login")]
+    public async Task<IActionResult> Login(LoginRequest loginRequest)
+    {
+        var result = await authService.Login(loginRequest);
+
+        if (!result.Succeeded)
+            return Unauthorized(result.Error);
+
+        return Ok(result.Data);
     }
 }
