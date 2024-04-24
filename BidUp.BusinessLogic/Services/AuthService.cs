@@ -101,7 +101,8 @@ public class AuthService : IAuthService
 
 
         var roles = await userManager.GetRolesAsync(user);
-        var (token, expiresIn) = CreateAccessToken(user, roles);
+        var (accessToken, expiresIn) = CreateAccessToken(user, roles);
+        var refreshToken = await CreateRefreshToken(user);
 
         var loginResponse = new LoginResponse
         {
@@ -110,13 +111,59 @@ public class AuthService : IAuthService
             LastName = user.LastName,
             Email = user.Email!,
             Role = roles.First(),
-            AccessToken = token,
-            ExpiresIn = expiresIn
+            AccessToken = accessToken,
+            ExpiresIn = expiresIn,
+            RefreshToken = refreshToken
         };
 
         return new AppResult<LoginResponse>(loginResponse);
     }
 
+    public async Task<AppResult<LoginResponse>> Refresh(string refreshToken)
+    {
+        var user = userManager.Users.SingleOrDefault(user => user.RefreshToken == refreshToken);
+        if (user is null)
+            return new AppResult<LoginResponse>(ErrorCode.AUTH_INVALID_REFRESH_TOKEN, "Invalid refresh token.");
+
+        var roles = await userManager.GetRolesAsync(user);
+        var (accessToken, expiresIn) = CreateAccessToken(user, roles);
+        var newRefreshToken = await CreateRefreshToken(user);
+
+        var loginResponse = new LoginResponse
+        {
+            UserId = user.Id,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            Email = user.Email!,
+            Role = roles.First(),
+            AccessToken = accessToken,
+            ExpiresIn = expiresIn,
+            RefreshToken = newRefreshToken
+        };
+
+        return new AppResult<LoginResponse>(loginResponse);
+    }
+
+
+    private async Task<string> CreateRefreshToken(User user)
+    {
+        var randomNumber = new Byte[32];
+
+        using (var randomNumberGenerator = RandomNumberGenerator.Create())
+        {
+            // fills the byte array(randomNumber) with a cryptographically strong random sequence of values.
+            randomNumberGenerator.GetBytes(randomNumber);
+        }
+
+        var refreshToken = Convert.ToBase64String(randomNumber);  // Converting the byte array to a base64 string to ensures that the refresh token is in a format that can be easily transmitted or stored in the database
+
+        //save the refresh token into the user record in the db to use it to get the user when the consumer tries to refresh the tokens later
+        user.RefreshToken = refreshToken;
+
+        await userManager.UpdateAsync(user);
+
+        return refreshToken;
+    }
 
     private (string token, double expiresIn) CreateAccessToken(User user, IEnumerable<string> roles)
     {

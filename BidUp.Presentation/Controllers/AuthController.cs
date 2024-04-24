@@ -70,4 +70,15 @@ public class AuthController : ControllerBase
 
         return Ok(result.Data);
     }
+
+    [HttpPost("refresh")]
+    public async Task<IActionResult> RefreshToken(RefreshRequest refreshRequest)
+    {
+        var result = await authService.Refresh(refreshRequest.RefreshToken);
+
+        if (!result.Succeeded)
+            return Unauthorized(result.Error);
+
+        return Ok(result.Data);
+    }
 }

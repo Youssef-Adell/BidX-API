@@ -9,5 +9,5 @@ public interface IAuthService
     Task SendConfirmationEmail(string email, string urlOfConfirmationEndpoint);
     Task<bool> ConfirmEmail(string userId, string token);
     Task<AppResult<LoginResponse>> Login(LoginRequest loginRequest);
-
+    Task<AppResult<LoginResponse>> Refresh(string refreshToken);
 }

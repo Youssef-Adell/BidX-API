@@ -15,7 +15,9 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<int>, int>
     {
         base.OnModelCreating(builder);
 
-        builder.Entity<User>().ToTable("Users", "security");
+        builder.Entity<User>().ToTable("Users", "security")
+            .HasIndex(u => u.RefreshToken) //to improve the search performance while getting the user associated to the refreshtoken
+            .HasDatabaseName("RefreshTokenIndex");
         builder.Entity<IdentityRole<int>>().ToTable("Roles", "security");
         builder.Entity<IdentityUserRole<int>>().ToTable("UserRoles", "security");
         builder.Entity<IdentityUserClaim<int>>().ToTable("UserClaims", "security");
