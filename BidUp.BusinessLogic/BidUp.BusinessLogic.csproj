@@ -4,6 +4,7 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Humanizer" Version="2.14.1" />
+    <PackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="8.0.4" />
     <PackageReference Include="sib_api_v3_sdk" Version="4.0.2" />
   </ItemGroup>
   <PropertyGroup>

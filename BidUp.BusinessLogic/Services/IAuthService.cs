@@ -5,5 +5,7 @@ namespace BidUp.BusinessLogic.Services;
 
 public interface IAuthService
 {
-    public Task<AppResult> Register(RegisterRequest registerRequest, string userRole = "User");
+    Task<AppResult> Register(RegisterRequest registerRequest, string userRole = "User");
+    Task SendConfirmationEmail(string email, string urlOfConfirmationEndpoint);
+    Task<bool> ConfirmEmail(string userId, string token);
 }
