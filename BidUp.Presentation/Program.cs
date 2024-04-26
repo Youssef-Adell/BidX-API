@@ -3,7 +3,6 @@ using BidUp.BusinessLogic.DTOs.CommonDTOs;
 using BidUp.BusinessLogic.Services;
 using BidUp.DataAccess;
 using BidUp.DataAccess.Entites;
-using Humanizer;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -19,11 +18,12 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
 {
     options.InvalidModelStateResponseFactory = actionContext =>
     {
-        var validationErrors = actionContext.ModelState.Values
+        var validationErrorMessages = actionContext.ModelState.Values
             .Where(stateEntry => stateEntry.Errors.Count > 0)
-            .SelectMany(stateEntry => stateEntry.Errors);
+            .SelectMany(stateEntry => stateEntry.Errors)
+            .Select(error => error.ErrorMessage);
 
-        var errorResponse = new ErrorResponse(ErrorCode.USER_INPUT_INVALID_SYNTAX, validationErrors.Humanize(e => e.ErrorMessage));
+        var errorResponse = new ErrorResponse(ErrorCode.USER_INPUT_INVALID_SYNTAX, string.Join("\n", validationErrorMessages));
 
         return new BadRequestObjectResult(errorResponse);
     };

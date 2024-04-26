@@ -5,7 +5,6 @@ using System.Text;
 using BidUp.BusinessLogic.DTOs.AuthDTOs;
 using BidUp.BusinessLogic.DTOs.CommonDTOs;
 using BidUp.DataAccess.Entites;
-using Humanizer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Configuration;
@@ -39,7 +38,10 @@ public class AuthService : IAuthService
         var creationResult = await userManager.CreateAsync(user, registerRequest.Password.Trim());
 
         if (!creationResult.Succeeded)
-            return new AppResult(ErrorCode.AUTH_VIOLATE_REGISTER_RULES, creationResult.Errors.Humanize(e => e.Description));
+        {
+            var errorMessages = creationResult.Errors.Select(error => error.Description);
+            return new AppResult(ErrorCode.AUTH_VIOLATE_REGISTER_RULES, string.Join("\n", errorMessages));
+        }
 
         var addingRolesResult = await userManager.AddToRoleAsync(user, userRole);
 
@@ -170,7 +172,10 @@ public class AuthService : IAuthService
             var resetResult = await userManager.ResetPasswordAsync(user, resetPasswordRequest.Token, resetPasswordRequest.NewPassword);
 
             if (!resetResult.Succeeded)
-                return new AppResult(ErrorCode.AUTH_PASSWORD_RESET_FAILD, resetResult.Errors.Humanize(e => e.Description));
+            {
+                var errorMessages = resetResult.Errors.Select(error => error.Description);
+                return new AppResult(ErrorCode.AUTH_PASSWORD_RESET_FAILD, string.Join("\n", errorMessages));
+            }
 
             return new AppResult();
         }
