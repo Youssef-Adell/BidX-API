@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using BidUp.BusinessLogic.DTOs.AuthDTOs;
 using BidUp.BusinessLogic.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -110,6 +111,20 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> ResetPassword(ResetPasswordRequest resetPasswordRequest)
     {
         var result = await authService.ResetPassword(resetPasswordRequest);
+
+        if (!result.Succeeded)
+            return UnprocessableEntity(result.Error);
+
+        return NoContent();
+    }
+
+    [HttpPost("change-password")]
+    [Authorize]
+    public async Task<IActionResult> ChangePassword(ChangePasswordRequest changePasswordRequest)
+    {
+        var userId = int.Parse(User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value!);
+
+        var result = await authService.ChangePassword(userId, changePasswordRequest);
 
         if (!result.Succeeded)
             return UnprocessableEntity(result.Error);

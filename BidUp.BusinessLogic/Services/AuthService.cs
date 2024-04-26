@@ -183,6 +183,26 @@ public class AuthService : IAuthService
         return new AppResult(ErrorCode.AUTH_PASSWORD_RESET_FAILD, "Oops! Something went wrong.");
     }
 
+    public async Task<AppResult> ChangePassword(int userId, ChangePasswordRequest changePasswordRequest)
+    {
+        var user = await userManager.FindByIdAsync(userId.ToString());
+
+        if (user != null)
+        {
+            var changingResult = await userManager.ChangePasswordAsync(user, changePasswordRequest.CurrentPassword, changePasswordRequest.NewPassword);
+
+            if (!changingResult.Succeeded)
+            {
+                var errorMessages = changingResult.Errors.Select(error => error.Description);
+                return new AppResult(ErrorCode.AUTH_PASSWORD_CHANGE_FAILD, string.Join("\n", errorMessages));
+            }
+
+            return new AppResult();
+        }
+
+        return new AppResult(ErrorCode.AUTH_PASSWORD_CHANGE_FAILD, "Oops! Something went wrong.");
+    }
+
 
     private async Task<string> CreateRefreshToken(User user)
     {

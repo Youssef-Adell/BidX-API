@@ -12,5 +12,5 @@ public interface IAuthService
     Task<AppResult<LoginResponse>> Refresh(string refreshToken);
     Task SendPasswordResetEmail(string email, string urlOfPasswordResetPage);
     Task<AppResult> ResetPassword(ResetPasswordRequest resetPasswordRequest);
-
+    Task<AppResult> ChangePassword(int userId, ChangePasswordRequest changePasswordRequest);
 }
