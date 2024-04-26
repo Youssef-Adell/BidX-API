@@ -144,6 +144,40 @@ public class AuthService : IAuthService
         return new AppResult<LoginResponse>(loginResponse);
     }
 
+    public async Task SendPasswordResetEmail(string email, string urlOfPasswordResetPage)
+    {
+        var user = await userManager.FindByEmailAsync(email);
+
+        if (user != null && user.EmailConfirmed)
+        {
+            var token = await userManager.GeneratePasswordResetTokenAsync(user);
+            token = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
+
+            var urlOfPasswordResetPageForCurrentUser = $"{urlOfPasswordResetPage}?userId={user.Id}&token={token}";
+
+            await emailService.SendPasswordResetEmail(email, urlOfPasswordResetPageForCurrentUser);
+        }
+    }
+
+    public async Task<AppResult> ResetPassword(ResetPasswordRequest resetPasswordRequest)
+    {
+        var user = await userManager.FindByIdAsync(resetPasswordRequest.UserId);
+
+        if (user != null && user.EmailConfirmed)
+        {
+            resetPasswordRequest.Token = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(resetPasswordRequest.Token));
+
+            var resetResult = await userManager.ResetPasswordAsync(user, resetPasswordRequest.Token, resetPasswordRequest.NewPassword);
+
+            if (!resetResult.Succeeded)
+                return new AppResult(ErrorCode.AUTH_PASSWORD_RESET_FAILD, resetResult.Errors.Humanize(e => e.Description));
+
+            return new AppResult();
+        }
+
+        return new AppResult(ErrorCode.AUTH_PASSWORD_RESET_FAILD, "Oops! Something went wrong.");
+    }
+
 
     private async Task<string> CreateRefreshToken(User user)
     {

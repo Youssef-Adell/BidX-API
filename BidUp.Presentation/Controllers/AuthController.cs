@@ -18,7 +18,7 @@ public class AuthController : ControllerBase
         this.linkGenerator = linkGenerator;
     }
 
-    [HttpPost]
+    [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterRequest registerRequest)
     {
         var result = await authService.Register(registerRequest);
@@ -34,7 +34,6 @@ public class AuthController : ControllerBase
     and when the user hit this link a get request will be sent to the "confirm-email" endpoint which will take the token in the query param to validate it and return an html page to indicate if the email confirmed or not
     */
     [HttpPost("resend-confirmation-email")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> SendConfirmationEmail(SendConfirmationEmailRequest sendConfirmationEmailRequest)
     {
         var urlOfConfirmationEndpoint = linkGenerator.GetUriByAction(HttpContext, nameof(ConfirmEmail));
@@ -80,5 +79,41 @@ public class AuthController : ControllerBase
             return Unauthorized(result.Error);
 
         return Ok(result.Data);
+    }
+
+    /*
+    when the user enter his email and hit the "forget-password" endpoint there is message contains a link to the "reset-password-page" endpoint with (accountId, token) in the query parameters will be sent to it
+    the link will return an html page that has a form to set a new password and as i said there is accountId and resetCode included in the query parameter by the previous endpoint
+    when the user press the submit button to submit the new password there is a post request contains (accountId, token, newPassword) will be sent to "reset-password" endpoint
+    */
+    [HttpPost("forgot-password")]
+    public async Task<IActionResult> ForgotPassword(ForgotPasswordRequest forgotPasswordRequest)
+    {
+        await authService.SendPasswordResetEmail(forgotPasswordRequest.Email, linkGenerator.GetUriByAction(HttpContext, nameof(GetPasswordResetPage))!);
+
+        return NoContent();
+    }
+
+    [HttpGet("password-reset-page")]
+    [ApiExplorerSettings(IgnoreApi = true)]
+    public async Task<ContentResult> GetPasswordResetPage(string userId, string token)
+    {
+        var html = await System.IO.File.ReadAllTextAsync(@"./wwwroot/Pages/reset-password.html");
+
+        html = html.Replace("{{resetPasswordEndpointUrl}}", linkGenerator.GetUriByAction(HttpContext, nameof(ResetPassword)));
+
+        return Content(html, "text/html");
+    }
+
+    [HttpPost("reset-password")]
+    [ApiExplorerSettings(IgnoreApi = true)]
+    public async Task<IActionResult> ResetPassword(ResetPasswordRequest resetPasswordRequest)
+    {
+        var result = await authService.ResetPassword(resetPasswordRequest);
+
+        if (!result.Succeeded)
+            return UnprocessableEntity(result.Error);
+
+        return NoContent();
     }
 }
