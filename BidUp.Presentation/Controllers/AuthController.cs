@@ -131,4 +131,16 @@ public class AuthController : ControllerBase
 
         return NoContent();
     }
+
+
+    [HttpPost("revoke-refresh-token")]
+    [Authorize]
+    public async Task<IActionResult> RevokeRefreshToken()
+    {
+        var userId = int.Parse(User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value!);
+
+        await authService.RevokeRefreshToken(userId);
+
+        return NoContent();
+    }
 }

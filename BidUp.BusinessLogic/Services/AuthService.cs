@@ -203,6 +203,17 @@ public class AuthService : IAuthService
         return new AppResult(ErrorCode.AUTH_PASSWORD_CHANGE_FAILD, "Oops! Something went wrong.");
     }
 
+    public async Task RevokeRefreshToken(int userId)
+    {
+        var user = await userManager.FindByIdAsync(userId.ToString());
+
+        if (user != null)
+        {
+            user.RefreshToken = null;
+            await userManager.UpdateAsync(user);
+        }
+    }
+
 
     private async Task<string> CreateRefreshToken(User user)
     {
