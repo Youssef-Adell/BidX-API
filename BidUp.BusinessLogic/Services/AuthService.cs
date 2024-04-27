@@ -123,7 +123,7 @@ public class AuthService : IAuthService
 
     public async Task<AppResult<LoginResponse>> Refresh(string refreshToken)
     {
-        var user = userManager.Users.SingleOrDefault(user => user.RefreshToken == refreshToken);
+        var user = userManager.Users.SingleOrDefault(user => user.RefreshToken == refreshToken && user.RefreshToken != null);
         if (user is null)
             return new AppResult<LoginResponse>(ErrorCode.AUTH_INVALID_REFRESH_TOKEN, "Invalid refresh token.");
 
