@@ -3,6 +3,7 @@ using BidUp.BusinessLogic.DTOs.CommonDTOs;
 using BidUp.BusinessLogic.Services;
 using BidUp.DataAccess;
 using BidUp.DataAccess.Entites;
+using BidUp.Presentation.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -12,6 +13,8 @@ using Microsoft.IdentityModel.Tokens;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
+
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 // Modify the default behaviour of [APIController] Attribute to return a customized error response instead of the default response to unify error responses accross the api
 builder.Services.Configure<ApiBehaviorOptions>(options =>
@@ -95,6 +98,9 @@ using (var scope = app.Services.CreateScope())
         logger.LogError(ex.Message);
     }
 }
+
+if (!app.Environment.IsDevelopment())
+    app.UseExceptionHandler(o => { }); // i added o=>{} due to a bug in .NET8 see this issue for more info ttps://github.com/dotnet/aspnetcore/issues/51888
 
 if (app.Environment.IsDevelopment())
 {
