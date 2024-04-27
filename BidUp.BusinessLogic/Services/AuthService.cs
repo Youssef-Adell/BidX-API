@@ -40,12 +40,12 @@ public class AuthService : IAuthService
         if (!creationResult.Succeeded)
         {
             var errorMessages = creationResult.Errors.Select(error => error.Description);
-            return new AppResult(ErrorCode.AUTH_VIOLATE_REGISTER_RULES, string.Join("\n", errorMessages));
+            return AppResult.Failure(ErrorCode.AUTH_VIOLATE_REGISTER_RULES, string.Join("\n", errorMessages));
         }
 
         var addingRolesResult = await userManager.AddToRoleAsync(user, userRole);
 
-        return new AppResult();
+        return AppResult.Success();
     }
 
     public async Task SendConfirmationEmail(string email, string urlOfConfirmationEndpoint)
@@ -87,19 +87,19 @@ public class AuthService : IAuthService
     {
         var user = await userManager.FindByEmailAsync(loginRequest.Email);
         if (user is null)
-            return new AppResult<LoginResponse>(ErrorCode.AUTH_INVALID_USERNAME_OR_PASSWORD, "Invalid email or password.");
+            return AppResult<LoginResponse>.Failure(ErrorCode.AUTH_INVALID_USERNAME_OR_PASSWORD, "Invalid email or password.");
 
         if (await userManager.IsLockedOutAsync(user))
-            return new AppResult<LoginResponse>(ErrorCode.AUTH_ACCOUNT_IS_LOCKED_OUT, "The account has been temporarily locked out.");
+            return AppResult<LoginResponse>.Failure(ErrorCode.AUTH_ACCOUNT_IS_LOCKED_OUT, "The account has been temporarily locked out.");
 
         if (!await userManager.CheckPasswordAsync(user, loginRequest.Password))
         {
             await userManager.AccessFailedAsync(user);
-            return new AppResult<LoginResponse>(ErrorCode.AUTH_INVALID_USERNAME_OR_PASSWORD, "Invalid email or password.");
+            return AppResult<LoginResponse>.Failure(ErrorCode.AUTH_INVALID_USERNAME_OR_PASSWORD, "Invalid email or password.");
         }
 
         if (!user.EmailConfirmed)
-            return new AppResult<LoginResponse>(ErrorCode.AUTH_EMAIL_NOT_CONFIRMED, "The email has not been confirmed.");
+            return AppResult<LoginResponse>.Failure(ErrorCode.AUTH_EMAIL_NOT_CONFIRMED, "The email has not been confirmed.");
 
 
         var roles = await userManager.GetRolesAsync(user);
@@ -118,14 +118,14 @@ public class AuthService : IAuthService
             RefreshToken = refreshToken
         };
 
-        return new AppResult<LoginResponse>(loginResponse);
+        return AppResult<LoginResponse>.Success(loginResponse);
     }
 
     public async Task<AppResult<LoginResponse>> Refresh(string refreshToken)
     {
         var user = userManager.Users.SingleOrDefault(user => user.RefreshToken == refreshToken && user.RefreshToken != null);
         if (user is null)
-            return new AppResult<LoginResponse>(ErrorCode.AUTH_INVALID_REFRESH_TOKEN, "Invalid refresh token.");
+            return AppResult<LoginResponse>.Failure(ErrorCode.AUTH_INVALID_REFRESH_TOKEN, "Invalid refresh token.");
 
         var roles = await userManager.GetRolesAsync(user);
         var (accessToken, expiresIn) = CreateAccessToken(user, roles);
@@ -143,7 +143,7 @@ public class AuthService : IAuthService
             RefreshToken = newRefreshToken
         };
 
-        return new AppResult<LoginResponse>(loginResponse);
+        return AppResult<LoginResponse>.Success(loginResponse);
     }
 
     public async Task SendPasswordResetEmail(string email, string urlOfPasswordResetPage)
@@ -174,13 +174,13 @@ public class AuthService : IAuthService
             if (!resetResult.Succeeded)
             {
                 var errorMessages = resetResult.Errors.Select(error => error.Description);
-                return new AppResult(ErrorCode.AUTH_PASSWORD_RESET_FAILD, string.Join("\n", errorMessages));
+                return AppResult.Failure(ErrorCode.AUTH_PASSWORD_RESET_FAILD, string.Join("\n", errorMessages));
             }
 
-            return new AppResult();
+            return AppResult.Success();
         }
 
-        return new AppResult(ErrorCode.AUTH_PASSWORD_RESET_FAILD, "Oops! Something went wrong.");
+        return AppResult.Failure(ErrorCode.AUTH_PASSWORD_RESET_FAILD, "Oops! Something went wrong.");
     }
 
     public async Task<AppResult> ChangePassword(int userId, ChangePasswordRequest changePasswordRequest)
@@ -194,13 +194,13 @@ public class AuthService : IAuthService
             if (!changingResult.Succeeded)
             {
                 var errorMessages = changingResult.Errors.Select(error => error.Description);
-                return new AppResult(ErrorCode.AUTH_PASSWORD_CHANGE_FAILD, string.Join("\n", errorMessages));
+                return AppResult.Failure(ErrorCode.AUTH_PASSWORD_CHANGE_FAILD, string.Join("\n", errorMessages));
             }
 
-            return new AppResult();
+            return AppResult.Success();
         }
 
-        return new AppResult(ErrorCode.AUTH_PASSWORD_CHANGE_FAILD, "Oops! Something went wrong.");
+        return AppResult.Failure(ErrorCode.AUTH_PASSWORD_CHANGE_FAILD, "Oops! Something went wrong.");
     }
 
     public async Task RevokeRefreshToken(int userId)
