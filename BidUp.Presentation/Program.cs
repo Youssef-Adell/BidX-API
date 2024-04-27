@@ -17,7 +17,8 @@ using Swashbuckle.AspNetCore.Filters;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+                .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter())); // To serialize enum values to string instead of int
 
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
