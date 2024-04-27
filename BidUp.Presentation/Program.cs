@@ -3,15 +3,19 @@ using BidUp.BusinessLogic.DTOs.CommonDTOs;
 using BidUp.BusinessLogic.Services;
 using BidUp.DataAccess;
 using BidUp.DataAccess.Entites;
+using BidUp.Presentation.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
+
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 // Modify the default behaviour of [APIController] Attribute to return a customized error response instead of the default response to unify error responses accross the api
 builder.Services.Configure<ApiBehaviorOptions>(options =>
@@ -68,6 +72,9 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
+// https://nblumhardt.com/2024/04/serilog-net8-0-minimal
+Log.Logger = new LoggerConfiguration().ReadFrom.Configuration(builder.Configuration).CreateLogger();
+
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IEmailService, BrevoEmailService>();
 
@@ -91,10 +98,11 @@ using (var scope = app.Services.CreateScope())
     }
     catch (Exception ex)
     {
-        var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex.Message);
+        Log.Error(ex.ToString());
     }
 }
+
+app.UseExceptionHandler(o => { }); // i added o=>{} due to a bug in .NET8 see this issue for more info ttps://github.com/dotnet/aspnetcore/issues/51888
 
 if (app.Environment.IsDevelopment())
 {
