@@ -123,7 +123,7 @@ public class AuthService : IAuthService
 
     public async Task<AppResult<LoginResponse>> Refresh(string refreshToken)
     {
-        var user = userManager.Users.SingleOrDefault(user => user.RefreshToken == refreshToken);
+        var user = userManager.Users.SingleOrDefault(user => user.RefreshToken == refreshToken && user.RefreshToken != null);
         if (user is null)
             return new AppResult<LoginResponse>(ErrorCode.AUTH_INVALID_REFRESH_TOKEN, "Invalid refresh token.");
 
@@ -201,6 +201,17 @@ public class AuthService : IAuthService
         }
 
         return new AppResult(ErrorCode.AUTH_PASSWORD_CHANGE_FAILD, "Oops! Something went wrong.");
+    }
+
+    public async Task RevokeRefreshToken(int userId)
+    {
+        var user = await userManager.FindByIdAsync(userId.ToString());
+
+        if (user != null)
+        {
+            user.RefreshToken = null;
+            await userManager.UpdateAsync(user);
+        }
     }
 
 
