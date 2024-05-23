@@ -7,16 +7,16 @@ public class AppResult
     {
     }
 
-    private AppResult(ErrorCode errorCode, string errorMessage)
+    private AppResult(ErrorCode errorCode, IEnumerable<string> errorMessages)
     {
-        Error = new(errorCode, errorMessage);
+        Error = new(errorCode, errorMessages);
     }
 
     public ErrorResponse? Error { get; init; }
     public bool Succeeded => Error == null;
 
     /// <returns>AppResult object represents an unsuccessfull result.</returns>
-    public static AppResult Failure(ErrorCode errorCode, string errorMessage) => new(errorCode, errorMessage);
+    public static AppResult Failure(ErrorCode errorCode, IEnumerable<string> errorMessages) => new(errorCode, errorMessages);
 
     /// <returns>AppResult object represents a successfull result.</returns>
     public static AppResult Success() => new();
@@ -25,25 +25,25 @@ public class AppResult
 
 
 /// <summary>A class used to represent the results returned from the application services.</summary>
-public class AppResult<TData>
+public class AppResult<TResponse>
 {
-    private AppResult(TData data)
+    private AppResult(TResponse response)
     {
-        Data = data;
+        Response = response;
     }
 
-    private AppResult(ErrorCode errorCode, string errorMessage)
+    private AppResult(ErrorCode errorCode, IEnumerable<string> errorMessages)
     {
-        Error = new(errorCode, errorMessage);
+        Error = new(errorCode, errorMessages);
     }
 
-    public TData? Data { get; set; }
+    public TResponse? Response { get; set; }
     public ErrorResponse? Error { get; init; }
     public bool Succeeded => Error == null;
 
     /// <returns>AppResult object represents an unsuccessfull result.</returns>
-    public static AppResult<TData> Failure(ErrorCode errorCode, string errorMessage) => new(errorCode, errorMessage);
+    public static AppResult<TResponse> Failure(ErrorCode errorCode, IEnumerable<string> errorMessages) => new(errorCode, errorMessages);
 
     /// <returns>AppResult object represents a successfull result.</returns>
-    public static AppResult<TData> Success(TData data) => new(data);
+    public static AppResult<TResponse> Success(TResponse response) => new(response);
 }

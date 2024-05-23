@@ -2,12 +2,12 @@ namespace BidUp.BusinessLogic.DTOs.CommonDTOs;
 
 public class ErrorResponse
 {
-    public ErrorResponse(ErrorCode errorCode, string errorMessage)
+    public ErrorResponse(ErrorCode errorCode, IEnumerable<string> errorMessages)
     {
         ErrorCode = errorCode;
-        ErrorMessage = errorMessage;
+        ErrorMessages = errorMessages;
     }
 
     public ErrorCode ErrorCode { get; init; }
-    public string ErrorMessage { get; init; }
+    public IEnumerable<string> ErrorMessages { get; init; }
 }

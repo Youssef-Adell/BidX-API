@@ -77,7 +77,7 @@ public class AuthController : ControllerBase
         if (!result.Succeeded)
             return Unauthorized(result.Error);
 
-        return Ok(result.Data);
+        return Ok(result.Response);
     }
 
     [HttpPost("refresh")]
@@ -90,7 +90,7 @@ public class AuthController : ControllerBase
         if (!result.Succeeded)
             return Unauthorized(result.Error);
 
-        return Ok(result.Data);
+        return Ok(result.Response);
     }
 
     /*

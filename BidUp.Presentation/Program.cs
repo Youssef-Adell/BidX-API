@@ -33,7 +33,7 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
             .SelectMany(stateEntry => stateEntry.Errors)
             .Select(error => error.ErrorMessage);
 
-        var errorResponse = new ErrorResponse(ErrorCode.USER_INPUT_INVALID_SYNTAX, string.Join("\n", validationErrorMessages));
+        var errorResponse = new ErrorResponse(ErrorCode.USER_INPUT_INVALID_SYNTAX, validationErrorMessages);
 
         return new BadRequestObjectResult(errorResponse);
     };

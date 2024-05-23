@@ -13,7 +13,7 @@ internal sealed class GlobalExceptionHandler : IExceptionHandler
 
         httpContext.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
 
-        await httpContext.Response.WriteAsJsonAsync(new ErrorResponse(ErrorCode.SERVER_INTENRAL_ERROR, "We're experiencing technical issues. Try again later."), cancellationToken);
+        await httpContext.Response.WriteAsJsonAsync(new ErrorResponse(ErrorCode.SERVER_INTENRAL_ERROR, ["We're experiencing technical issues. Try again later."]), cancellationToken);
 
         return true;
     }
