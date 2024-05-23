@@ -1,4 +1,6 @@
 using System.Net;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using BidUp.BusinessLogic.DTOs.CommonDTOs;
 using Microsoft.AspNetCore.Diagnostics;
 using Serilog;
@@ -13,7 +15,18 @@ internal sealed class GlobalExceptionHandler : IExceptionHandler
 
         httpContext.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
 
-        await httpContext.Response.WriteAsJsonAsync(new ErrorResponse(ErrorCode.SERVER_INTENRAL_ERROR, ["We're experiencing technical issues. Try again later."]), cancellationToken);
+        var jsonSerializerOptions = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = true,
+            Converters = { new JsonStringEnumConverter() }
+        };
+
+        await httpContext.Response.WriteAsJsonAsync(
+            new ErrorResponse(ErrorCode.SERVER_INTENRAL_ERROR, ["We're experiencing technical issues. Try again later."]),
+            jsonSerializerOptions,
+            cancellationToken
+        );
 
         return true;
     }
