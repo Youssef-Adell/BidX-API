@@ -33,4 +33,44 @@ public static class AppDbInitializer
             await userManager.AddToRoleAsync(admin, "Admin");
         }
     }
+    public static async Task SeedCities(this AppDbContext appDbContext)
+    {
+        if (!await appDbContext.Cities.AnyAsync())
+        {
+            // List of Egyptian governorates
+            var egyptianGovernorates = new List<City>{
+                new() { Name = "Cairo" },
+                new() { Name = "Alexandria" },
+                new() { Name = "Giza" },
+                new() { Name = "Qalyubia" },
+                new() { Name = "Port Said" },
+                new() { Name = "Suez" },
+                new() { Name = "Dakahlia" },
+                new() { Name = "Sharkia" },
+                new() { Name = "Kafr El Sheikh" },
+                new() { Name = "Gharbia" },
+                new() { Name = "Monufia" },
+                new() { Name = "Beheira" },
+                new() { Name = "Ismailia" },
+                new() { Name = "Giza" },
+                new() { Name = "Beni Suef" },
+                new() { Name = "Faiyum" },
+                new() { Name = "Minya" },
+                new() { Name = "Asyut" },
+                new() { Name = "Sohag" },
+                new() { Name = "Qena" },
+                new() { Name = "Aswan" },
+                new() { Name = "Luxor" },
+                new() { Name = "Red Sea" },
+                new() { Name = "New Valley" },
+                new() { Name = "Matrouh" },
+                new() { Name = "North Sinai" },
+                new() { Name = "South Sinai" }
+            };
+
+            await appDbContext.Cities.AddRangeAsync(egyptianGovernorates);
+
+            await appDbContext.SaveChangesAsync();
+        }
+    }
 }

@@ -135,6 +135,8 @@ using (var scope = app.Services.CreateScope())
 
         var userManager = services.GetRequiredService<UserManager<User>>();
         await userManager.SeedAdminAccounts();
+
+        await appDbContext.SeedCities();
     }
     catch (Exception ex)
     {
