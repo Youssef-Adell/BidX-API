@@ -25,11 +25,11 @@ public class AppResult
 
 
 /// <summary>A class used to represent the results returned from the application services.</summary>
-public class AppResult<TData>
+public class AppResult<TResponse>
 {
-    private AppResult(TData data)
+    private AppResult(TResponse response)
     {
-        Data = data;
+        Response = response;
     }
 
     private AppResult(ErrorCode errorCode, IEnumerable<string> errorMessages)
@@ -37,13 +37,13 @@ public class AppResult<TData>
         Error = new(errorCode, errorMessages);
     }
 
-    public TData? Data { get; set; }
+    public TResponse? Response { get; set; }
     public ErrorResponse? Error { get; init; }
     public bool Succeeded => Error == null;
 
     /// <returns>AppResult object represents an unsuccessfull result.</returns>
-    public static AppResult<TData> Failure(ErrorCode errorCode, IEnumerable<string> errorMessages) => new(errorCode, errorMessages);
+    public static AppResult<TResponse> Failure(ErrorCode errorCode, IEnumerable<string> errorMessages) => new(errorCode, errorMessages);
 
     /// <returns>AppResult object represents a successfull result.</returns>
-    public static AppResult<TData> Success(TData data) => new(data);
+    public static AppResult<TResponse> Success(TResponse response) => new(response);
 }
