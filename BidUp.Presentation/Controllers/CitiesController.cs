@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace BidUp.Presentation.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/cities")]
 public class CitiesController : ControllerBase
 {
     private readonly ICitiesService citiesService;

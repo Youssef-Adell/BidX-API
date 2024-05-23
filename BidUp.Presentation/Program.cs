@@ -117,6 +117,7 @@ builder.Services.AddAutoMapper(typeof(MappingProfile));
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IEmailService, BrevoEmailService>();
 builder.Services.AddScoped<ICitiesService, CitiesServices>();
+builder.Services.AddScoped<ICategoriesService, CategoriesService>();
 
 
 var app = builder.Build();

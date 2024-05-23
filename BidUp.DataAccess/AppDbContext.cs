@@ -12,6 +12,7 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<int>, int>
     }
 
     public required DbSet<City> Cities { get; set; }
+    public required DbSet<Category> Categories { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
