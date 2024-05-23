@@ -73,4 +73,30 @@ public static class AppDbInitializer
             await appDbContext.SaveChangesAsync();
         }
     }
+
+    public static async Task SeedCategories(this AppDbContext appDbContext)
+    {
+        if (!await appDbContext.Categories.AnyAsync())
+        {
+            var categories = new List<Category>()
+            {
+                new() { Name = "Vehicles", IconUrl = "https://res.cloudinary.com/dhghzuzbo/image/upload/v1716505451/vehicles_kx9kci.svg"},
+                new() { Name = "Properties", IconUrl = "https://res.cloudinary.com/dhghzuzbo/image/upload/v1716505710/properties_fnpch3.svg"},
+                new() { Name = "Electronics", IconUrl = "https://res.cloudinary.com/dhghzuzbo/image/upload/v1716505451/elctronics_wfiqez.svg"},
+                new() { Name = "Mobile Phones & Acessories", IconUrl = "https://res.cloudinary.com/dhghzuzbo/image/upload/v1716505449/mobiles_ltcrzh.svg"},
+                new() { Name = "Playstations", IconUrl = "https://res.cloudinary.com/dhghzuzbo/image/upload/v1716505448/playstations_fh3qsc.svg"},
+                new() { Name = "Home Appliances", IconUrl = "https://res.cloudinary.com/dhghzuzbo/image/upload/v1716505452/home-appliances_bqgszo.svg"},
+                new() { Name = "Clothing", IconUrl = "https://res.cloudinary.com/dhghzuzbo/image/upload/v1716505449/clothing_v1kwgg.svg"},
+                new() { Name = "Coins", IconUrl = "https://res.cloudinary.com/dhghzuzbo/image/upload/v1716505452/coins_fl5bln.svg"},
+                new() { Name = "Furniture", IconUrl = "https://res.cloudinary.com/dhghzuzbo/image/upload/v1716505448/furniture_xdlf2h.svg"},
+                new() { Name = "Cameras", IconUrl = "https://res.cloudinary.com/dhghzuzbo/image/upload/v1716505446/cameras_knarg8.svg"},
+                new() { Name = "Books", IconUrl = "https://res.cloudinary.com/dhghzuzbo/image/upload/v1716505448/books_ljmico.svg"},
+                new() { Name = "Watches", IconUrl = "https://res.cloudinary.com/dhghzuzbo/image/upload/v1716505449/watches_z5xngg.svg"}
+            };
+
+            await appDbContext.Categories.AddRangeAsync(categories);
+
+            await appDbContext.SaveChangesAsync();
+        }
+    }
 }

@@ -138,6 +138,7 @@ using (var scope = app.Services.CreateScope())
         await userManager.SeedAdminAccounts();
 
         await appDbContext.SeedCities();
+        await appDbContext.SeedCategories();
     }
     catch (Exception ex)
     {
