@@ -1,4 +1,4 @@
-namespace BidUp.BusinessLogic.Services;
+namespace BidUp.BusinessLogic.Interfaces;
 
 public interface IEmailService
 {
