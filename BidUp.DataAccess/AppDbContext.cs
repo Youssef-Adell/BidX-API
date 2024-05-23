@@ -11,6 +11,8 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<int>, int>
     {
     }
 
+    public required DbSet<City> Cities { get; set; }
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
