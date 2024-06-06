@@ -3,6 +3,8 @@
     <ProjectReference Include="..\BidUp.DataAccess\BidUp.DataAccess.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="AutoMapper" Version="13.0.1" />
+    <PackageReference Include="CloudinaryDotNet" Version="1.26.2" />
     <PackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="8.0.4" />
     <PackageReference Include="sib_api_v3_sdk" Version="4.0.2" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.5.1" />

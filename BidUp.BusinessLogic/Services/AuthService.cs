@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using BidUp.BusinessLogic.DTOs.AuthDTOs;
 using BidUp.BusinessLogic.DTOs.CommonDTOs;
+using BidUp.BusinessLogic.Interfaces;
 using BidUp.DataAccess.Entites;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;

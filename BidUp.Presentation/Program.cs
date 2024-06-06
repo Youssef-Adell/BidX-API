@@ -1,7 +1,9 @@
 using System.Reflection;
 using System.Text;
 using System.Text.Json.Serialization;
+using BidUp.BusinessLogic;
 using BidUp.BusinessLogic.DTOs.CommonDTOs;
+using BidUp.BusinessLogic.Interfaces;
 using BidUp.BusinessLogic.Services;
 using BidUp.DataAccess;
 using BidUp.DataAccess.Entites;
@@ -110,8 +112,13 @@ builder.Services.AddAuthentication(options =>
 // https://nblumhardt.com/2024/04/serilog-net8-0-minimal
 Log.Logger = new LoggerConfiguration().ReadFrom.Configuration(builder.Configuration).CreateLogger();
 
+builder.Services.AddAutoMapper(typeof(MappingProfile));
+
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IEmailService, BrevoEmailService>();
+builder.Services.AddScoped<ICitiesService, CitiesServices>();
+builder.Services.AddScoped<ICategoriesService, CategoriesService>();
+builder.Services.AddScoped<ICloudService, CloudinaryCloudService>();
 
 
 var app = builder.Build();
@@ -130,6 +137,9 @@ using (var scope = app.Services.CreateScope())
 
         var userManager = services.GetRequiredService<UserManager<User>>();
         await userManager.SeedAdminAccounts();
+
+        await appDbContext.SeedCities();
+        await appDbContext.SeedCategories();
     }
     catch (Exception ex)
     {

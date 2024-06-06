@@ -1,7 +1,7 @@
 using BidUp.BusinessLogic.DTOs.AuthDTOs;
 using BidUp.BusinessLogic.DTOs.CommonDTOs;
 
-namespace BidUp.BusinessLogic.Services;
+namespace BidUp.BusinessLogic.Interfaces;
 
 public interface IAuthService
 {
