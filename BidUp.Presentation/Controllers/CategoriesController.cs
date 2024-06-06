@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using BidUp.BusinessLogic.DTOs.CategoryDTOs;
+using BidUp.BusinessLogic.DTOs.CommonDTOs;
 using BidUp.BusinessLogic.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -49,5 +50,30 @@ public class CategoriesController : ControllerBase
 
             return CreatedAtAction(nameof(GetCategory), new { id = result.Response!.Id }, result.Response);
         }
+    }
+
+    [HttpPut("{id}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> UpdateCategory(int id, [FromForm] UpdateCategoryRequest updateCategoryRequest, IFormFile? icon)
+    {
+        // If categoryIconStream is null, the using statement effectively does nothing with regard to resource disposal since there is no resource to dispose of.
+        // The body of the using statement will still execute with categoryIconStream being null.
+
+        using (var categoryIconStream = icon?.OpenReadStream())
+        {
+            var result = await categoriesService.UpdateCategory(id, updateCategoryRequest, categoryIconStream);
+
+            if (!result.Succeeded)
+            {
+                var errorCode = result.Error!.ErrorCode;
+                if (errorCode == ErrorCode.RESOURCE_NOT_FOUND)
+                    return NotFound(result.Error);
+
+                else if (errorCode == ErrorCode.UPLOADED_FILE_INVALID)
+                    return UnprocessableEntity(result.Error);
+            }
+        }
+
+        return NoContent();
     }
 }

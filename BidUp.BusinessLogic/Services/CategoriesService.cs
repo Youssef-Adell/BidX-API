@@ -1,5 +1,6 @@
 using AutoMapper;
 using BidUp.BusinessLogic.DTOs.CategoryDTOs;
+using BidUp.BusinessLogic.DTOs.CloudDTOs;
 using BidUp.BusinessLogic.DTOs.CommonDTOs;
 using BidUp.BusinessLogic.Interfaces;
 using BidUp.DataAccess;
@@ -61,5 +62,36 @@ public class CategoriesService : ICategoriesService
         var response = mapper.Map<CategoryResponse>(category);
 
         return AppResult<CategoryResponse>.Success(response);
+    }
+
+    public async Task<AppResult> UpdateCategory(int id, UpdateCategoryRequest updateCategoryRequest, Stream? newCategoryIcon)
+    {
+        int noOfRowsAffected;
+
+        if (newCategoryIcon is not null)
+        {
+            var uploadResult = await cloudService.UploadSvgIcon(newCategoryIcon);
+
+            if (!uploadResult.Succeeded)
+                return AppResult.Failure(uploadResult.Error!.ErrorCode, uploadResult.Error.ErrorMessages);
+
+            noOfRowsAffected = await appDbContext.Categories
+                .Where(c => c.Id == id)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(c => c.Name, updateCategoryRequest.Name)
+                    .SetProperty(c => c.IconUrl, uploadResult.Response!.FileUrl));
+        }
+        else
+        {
+            noOfRowsAffected = await appDbContext.Categories
+               .Where(c => c.Id == id)
+               .ExecuteUpdateAsync(setters => setters
+                   .SetProperty(c => c.Name, updateCategoryRequest.Name));
+        }
+
+        if (noOfRowsAffected <= 0)
+            return AppResult.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Category not found."]);
+
+        return AppResult.Success();
     }
 }
