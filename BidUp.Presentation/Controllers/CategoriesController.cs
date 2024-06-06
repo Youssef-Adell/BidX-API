@@ -9,6 +9,8 @@ namespace BidUp.Presentation.Controllers;
 
 [ApiController]
 [Route("api/categories")]
+[Produces("application/json")]
+[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
 public class CategoriesController : ControllerBase
 {
     private readonly ICategoriesService categoriesService;
@@ -19,6 +21,7 @@ public class CategoriesController : ControllerBase
     }
 
     [HttpGet]
+    [ProducesResponseType(typeof(IEnumerable<CategoryResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetCategories()
     {
         var response = await categoriesService.GetCategories();
@@ -27,6 +30,8 @@ public class CategoriesController : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [ProducesResponseType(typeof(CategoryResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetCategory(int id)
     {
         var result = await categoriesService.GetCategory(id);
@@ -37,8 +42,15 @@ public class CategoriesController : ControllerBase
         return Ok(result.Response);
     }
 
+    /// <summary>
+    /// [Can be called by admins only]
+    /// </summary>
     [HttpPost]
     [Authorize(Roles = "Admin")]
+    [ProducesResponseType(typeof(CategoryResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> AddCategory([FromForm] AddCategoryRequest addCategoryRequest, [Required] IFormFile icon)
     {
         using (var categoryIconStream = icon.OpenReadStream())
@@ -52,8 +64,16 @@ public class CategoriesController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// [Can be called by admins only]
+    /// </summary>
     [HttpPut("{id}")]
     [Authorize(Roles = "Admin")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> UpdateCategory(int id, [FromForm] UpdateCategoryRequest updateCategoryRequest, IFormFile? icon)
     {
         // If categoryIconStream is null, the using statement effectively does nothing with regard to resource disposal since there is no resource to dispose of.
@@ -77,8 +97,15 @@ public class CategoriesController : ControllerBase
         return NoContent();
     }
 
+    /// <summary>
+    /// [Can be called by admins only]
+    /// </summary>
     [HttpDelete("{id}")]
     [Authorize(Roles = "Admin")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> DeleteCategory(int id)
     {
         var result = await categoriesService.DeleteCategory(id);
