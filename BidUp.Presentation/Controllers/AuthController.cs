@@ -11,7 +11,6 @@ namespace BidUp.Presentation.Controllers;
 [Route("api/auth")]
 [Produces("application/json")]
 [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
 public class AuthController : ControllerBase
 {
     private readonly IAuthService authService;
