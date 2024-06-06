@@ -9,4 +9,5 @@ public interface ICategoriesService
     Task<AppResult<CategoryResponse>> GetCategory(int id);
     Task<AppResult<CategoryResponse>> AddCategory(AddCategoryRequest addCategoryRequest, Stream categoryIcon);
     Task<AppResult> UpdateCategory(int id, UpdateCategoryRequest updateCategoryRequest, Stream? newCategoryIcon);
+    Task<AppResult> DeleteCategory(int id);
 }

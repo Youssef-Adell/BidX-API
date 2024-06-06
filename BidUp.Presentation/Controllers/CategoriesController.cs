@@ -76,4 +76,17 @@ public class CategoriesController : ControllerBase
 
         return NoContent();
     }
+
+    [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> DeleteCategory(int id)
+    {
+        var result = await categoriesService.DeleteCategory(id);
+
+        if (!result.Succeeded)
+            return NotFound(result.Error);
+
+        return NoContent();
+    }
+
 }

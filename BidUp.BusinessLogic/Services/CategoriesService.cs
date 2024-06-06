@@ -94,4 +94,16 @@ public class CategoriesService : ICategoriesService
 
         return AppResult.Success();
     }
+
+    public async Task<AppResult> DeleteCategory(int id)
+    {
+        var noOfRowsAffected = await appDbContext.Categories
+            .Where(c => c.Id == id)
+            .ExecuteDeleteAsync();
+
+        if (noOfRowsAffected <= 0)
+            return AppResult.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Category not found."]);
+
+        return AppResult.Success();
+    }
 }
