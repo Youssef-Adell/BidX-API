@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using BidUp.BusinessLogic.DTOs.CategoryDTOs;
 using BidUp.BusinessLogic.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -33,5 +34,20 @@ public class CategoriesController : ControllerBase
             return NotFound(result.Error);
 
         return Ok(result.Response);
+    }
+
+    [HttpPost]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> AddCategory([FromForm] AddCategoryRequest addCategoryRequest, [Required] IFormFile icon)
+    {
+        using (var categoryIconStream = icon.OpenReadStream())
+        {
+            var result = await categoriesService.AddCategory(addCategoryRequest, categoryIconStream);
+
+            if (!result.Succeeded)
+                return UnprocessableEntity(result.Error);
+
+            return CreatedAtAction(nameof(GetCategory), new { id = result.Response!.Id }, result.Response);
+        }
     }
 }

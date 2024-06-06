@@ -7,4 +7,5 @@ public interface ICategoriesService
 {
     Task<IEnumerable<CategoryResponse>> GetCategories();
     Task<AppResult<CategoryResponse>> GetCategory(int id);
+    Task<AppResult<CategoryResponse>> AddCategory(AddCategoryRequest addCategoryRequest, Stream categoryIcon);
 }
