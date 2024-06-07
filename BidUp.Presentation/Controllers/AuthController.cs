@@ -24,14 +24,17 @@ public class AuthController : ControllerBase
     [HttpPost("register")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<IActionResult> Register([FromBody] RegisterRequest registerRequest)
+    public async Task<IActionResult> Register([FromForm] RegisterRequest registerRequest, IFormFile? profilePicture)
     {
-        var result = await authService.Register(registerRequest);
+        using (var profilePictureStream = profilePicture?.OpenReadStream())
+        {
+            var result = await authService.Register(registerRequest, profilePictureStream);
 
-        if (!result.Succeeded)
-            return UnprocessableEntity(result.Error);
+            if (!result.Succeeded)
+                return UnprocessableEntity(result.Error);
 
-        return await SendConfirmationEmail(new() { Email = registerRequest.Email });
+            return await SendConfirmationEmail(new() { Email = registerRequest.Email });
+        }
     }
 
     /*
