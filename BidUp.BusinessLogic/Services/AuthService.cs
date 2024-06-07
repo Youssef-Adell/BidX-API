@@ -17,16 +17,18 @@ public class AuthService : IAuthService
 {
     private readonly UserManager<User> userManager;
     private readonly IEmailService emailService;
+    private readonly ICloudService cloudService;
     private readonly IConfiguration configuration;
 
-    public AuthService(UserManager<User> userManager, IEmailService emailService, IConfiguration configuration)
+    public AuthService(UserManager<User> userManager, IEmailService emailService, ICloudService cloudService, IConfiguration configuration)
     {
         this.userManager = userManager;
         this.emailService = emailService;
+        this.cloudService = cloudService;
         this.configuration = configuration;
     }
 
-    public async Task<AppResult> Register(RegisterRequest registerRequest, string userRole)
+    public async Task<AppResult> Register(RegisterRequest registerRequest, Stream? profilePicture, string userRole)
     {
         var user = new User()
         {
@@ -35,6 +37,16 @@ public class AuthService : IAuthService
             UserName = Guid.NewGuid().ToString(), // because it needs a unique value and we dont want to ask user to enter it to make the register process easier, and if we set it to the email value it will give user 2 errors in case if the entered email is already taken, one for username and one for email
             Email = registerRequest.Email.Trim()
         };
+
+        if (profilePicture is not null)
+        {
+            var uploadResult = await cloudService.UploadThumbnail(profilePicture);
+
+            if (!uploadResult.Succeeded)
+                return AppResult.Failure(uploadResult.Error!.ErrorCode, uploadResult.Error.ErrorMessages);
+
+            user.ProfilePictureUrl = uploadResult.Response!.FileUrl;
+        }
 
         var creationResult = await userManager.CreateAsync(user, registerRequest.Password.Trim());
 
@@ -113,6 +125,7 @@ public class AuthService : IAuthService
             FirstName = user.FirstName,
             LastName = user.LastName,
             Email = user.Email!,
+            ProfilePictureUrl = user.ProfilePictureUrl,
             Role = roles.First(),
             AccessToken = accessToken,
             ExpiresIn = expiresIn,
@@ -138,6 +151,7 @@ public class AuthService : IAuthService
             FirstName = user.FirstName,
             LastName = user.LastName,
             Email = user.Email!,
+            ProfilePictureUrl = user.ProfilePictureUrl,
             Role = roles.First(),
             AccessToken = accessToken,
             ExpiresIn = expiresIn,
