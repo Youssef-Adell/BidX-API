@@ -61,7 +61,7 @@ public class CloudinaryCloudService : ICloudService
 
         var response = new UploadResponse
         {
-            FileId = uploadResult.PublicId,
+            FileId = imageId,
             FileUrl = uploadResult.SecureUrl.ToString(),
         };
 
@@ -91,7 +91,7 @@ public class CloudinaryCloudService : ICloudService
 
         var response = new UploadResponse
         {
-            FileId = uploadResult.PublicId,
+            FileId = imageId,
             FileUrl = uploadResult.SecureUrl.ToString(),
         };
 
