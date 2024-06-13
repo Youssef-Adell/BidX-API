@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text;
 using System.Xml.Linq;
 using BidUp.BusinessLogic.DTOs.CloudDTOs;
 using BidUp.BusinessLogic.DTOs.CommonDTOs;
@@ -23,7 +24,11 @@ public class CloudinaryCloudService : ICloudService
     {
         this.logger = logger;
 
-        cloudinary = new Cloudinary(Environment.GetEnvironmentVariable("CLOUDINARY_URL"));
+        cloudinary = new Cloudinary(new Account(
+            cloud: Environment.GetEnvironmentVariable("CLOUDINARY_CLOUDNAME"),
+            apiKey: Environment.GetEnvironmentVariable("CLOUDINARY_APIKEY"),
+            apiSecret: Environment.GetEnvironmentVariable("CLOUDINARY_APISECRET")
+        ));
         cloudinary.Api.Secure = true;
 
         if (!int.TryParse(configuration["images:MaxIconSizeAllowed"], out maxIconSizeAllowed))
