@@ -11,4 +11,6 @@ public interface ICloudService
     /// Upload and transform the image to a thumbnail.
     /// </summary>
     Task<AppResult<UploadResponse>> UploadThumbnail(Stream image);
+
+    Task<AppResult<UploadResponse[]>> UploadImages(IEnumerable<Stream> images);
 }

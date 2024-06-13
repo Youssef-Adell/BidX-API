@@ -35,7 +35,7 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
             .SelectMany(stateEntry => stateEntry.Errors)
             .Select(error => error.ErrorMessage);
 
-        var errorResponse = new ErrorResponse(ErrorCode.USER_INPUT_INVALID_SYNTAX, validationErrorMessages);
+        var errorResponse = new ErrorResponse(ErrorCode.USER_INPUT_INVALID, validationErrorMessages);
 
         return new BadRequestObjectResult(errorResponse);
     };
@@ -119,6 +119,7 @@ builder.Services.AddScoped<IEmailService, BrevoEmailService>();
 builder.Services.AddScoped<ICitiesService, CitiesServices>();
 builder.Services.AddScoped<ICategoriesService, CategoriesService>();
 builder.Services.AddScoped<ICloudService, CloudinaryCloudService>();
+builder.Services.AddScoped<IAuctionsService, AuctionsService>();
 
 
 var app = builder.Build();
