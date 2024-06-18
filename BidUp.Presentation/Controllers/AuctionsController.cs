@@ -2,8 +2,10 @@ using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using BidUp.BusinessLogic.DTOs.AuctionDTOs;
 using BidUp.BusinessLogic.Interfaces;
+using BidUp.Presentation.Hubs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 
 
 namespace BidUp.Presentation.Controllers;
@@ -13,10 +15,12 @@ namespace BidUp.Presentation.Controllers;
 public class AuctionsController : ControllerBase
 {
     private readonly IAuctionsService auctionsService;
+    private readonly IHubContext<AppHub, IAppHubClient> hubContext;
 
-    public AuctionsController(IAuctionsService auctionsService)
+    public AuctionsController(IAuctionsService auctionsService, IHubContext<AppHub, IAppHubClient> hubContext)
     {
         this.auctionsService = auctionsService;
+        this.hubContext = hubContext;
     }
 
     [HttpPost]
@@ -34,7 +38,9 @@ public class AuctionsController : ControllerBase
             if (!result.Succeeded)
                 return UnprocessableEntity(result.Error);
 
-            return Ok(result.Response);
+            await hubContext.Clients.All.AuctionCreated(result.Response!);
+
+            return NoContent(); // To be changed later to CreatedAtAction after implementing GetAuction endpoint.
         }
         finally
         {   // Even if return is called within the try block, the finally block will still be executed.
