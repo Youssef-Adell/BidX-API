@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using BidUp.BusinessLogic.DTOs.AuctionDTOs;
+using BidUp.BusinessLogic.DTOs.CommonDTOs;
 using BidUp.BusinessLogic.Interfaces;
 using BidUp.Presentation.Hubs;
 using Microsoft.AspNetCore.Authorization;
@@ -12,6 +13,8 @@ namespace BidUp.Presentation.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Produces("application/json")]
+[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
 public class AuctionsController : ControllerBase
 {
     private readonly IAuctionsService auctionsService;
@@ -23,8 +26,14 @@ public class AuctionsController : ControllerBase
         this.hubContext = hubContext;
     }
 
+    /// <summary>
+    /// Invokes SignalR client function "AuctionCreated(AuctionResponse createdAuction)" on all connected clients
+    /// </summary>
     [HttpPost]
     [Authorize]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> CreateAuction([FromForm] CreateAuctionRequest createAuctionRequest, [Required][Length(1, 10, ErrorMessage = "The ProductImages field is required and must has 1 item at least item and 10 items at max.")] IEnumerable<IFormFile> productImages)
     {
         var userId = int.Parse(User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value!);
