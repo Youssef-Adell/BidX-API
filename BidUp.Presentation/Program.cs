@@ -7,6 +7,7 @@ using BidUp.BusinessLogic.Interfaces;
 using BidUp.BusinessLogic.Services;
 using BidUp.DataAccess;
 using BidUp.DataAccess.Entites;
+using BidUp.Presentation.Hubs;
 using BidUp.Presentation.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -35,7 +36,7 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
             .SelectMany(stateEntry => stateEntry.Errors)
             .Select(error => error.ErrorMessage);
 
-        var errorResponse = new ErrorResponse(ErrorCode.USER_INPUT_INVALID_SYNTAX, validationErrorMessages);
+        var errorResponse = new ErrorResponse(ErrorCode.USER_INPUT_INVALID, validationErrorMessages);
 
         return new BadRequestObjectResult(errorResponse);
     };
@@ -113,12 +114,19 @@ builder.Services.AddAuthentication(options =>
 Log.Logger = new LoggerConfiguration().ReadFrom.Configuration(builder.Configuration).CreateLogger();
 
 builder.Services.AddAutoMapper(typeof(MappingProfile));
+builder.Services.AddSignalR();
+builder.Services.AddCors(options =>
+{
+    // To be able to test signalR hub using JS client
+    options.AddPolicy(name: "DevelopmentPolicy", policy => policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
+});
 
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IEmailService, BrevoEmailService>();
 builder.Services.AddScoped<ICitiesService, CitiesServices>();
 builder.Services.AddScoped<ICategoriesService, CategoriesService>();
 builder.Services.AddScoped<ICloudService, CloudinaryCloudService>();
+builder.Services.AddScoped<IAuctionsService, AuctionsService>();
 
 
 var app = builder.Build();
@@ -154,10 +162,17 @@ app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
 
+if (app.Environment.IsDevelopment())
+{
+    app.UseCors("DevelopmentPolicy");
+}
+
 app.UseAuthentication(); // Validates the Token came at the request's Authorization header then decode it and assign it to HttpContext.User
 
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.MapHub<AppHub>("/appHub");
 
 app.Run();
