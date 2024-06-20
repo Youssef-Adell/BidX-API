@@ -24,7 +24,10 @@ public class CategoriesService : ICategoriesService
 
     public async Task<IEnumerable<CategoryResponse>> GetCategories()
     {
-        var categories = await appDbContext.Categories.AsNoTracking().ToListAsync();
+        var categories = await appDbContext.Categories
+            .Where(c => !c.IsDeleted)
+            .AsNoTracking()
+            .ToListAsync();
 
         var response = mapper.Map<IEnumerable<CategoryResponse>>(categories);
 
@@ -33,7 +36,9 @@ public class CategoriesService : ICategoriesService
 
     public async Task<AppResult<CategoryResponse>> GetCategory(int id)
     {
-        var category = await appDbContext.Categories.AsNoTracking().FirstOrDefaultAsync(c => c.Id == id);
+        var category = await appDbContext.Categories
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Id == id && !c.IsDeleted);
 
         if (category is null)
             return AppResult<CategoryResponse>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Category not found."]);
@@ -76,7 +81,7 @@ public class CategoriesService : ICategoriesService
                 return AppResult.Failure(uploadResult.Error!.ErrorCode, uploadResult.Error.ErrorMessages);
 
             noOfRowsAffected = await appDbContext.Categories
-                .Where(c => c.Id == id)
+                .Where(c => c.Id == id && !c.IsDeleted)
                 .ExecuteUpdateAsync(setters => setters
                     .SetProperty(c => c.Name, updateCategoryRequest.Name)
                     .SetProperty(c => c.IconUrl, uploadResult.Response!.FileUrl));
@@ -84,9 +89,9 @@ public class CategoriesService : ICategoriesService
         else
         {
             noOfRowsAffected = await appDbContext.Categories
-               .Where(c => c.Id == id)
-               .ExecuteUpdateAsync(setters => setters
-                   .SetProperty(c => c.Name, updateCategoryRequest.Name));
+                .Where(c => c.Id == id && !c.IsDeleted)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(c => c.Name, updateCategoryRequest.Name));
         }
 
         if (noOfRowsAffected <= 0)
@@ -98,8 +103,9 @@ public class CategoriesService : ICategoriesService
     public async Task<AppResult> DeleteCategory(int id)
     {
         var noOfRowsAffected = await appDbContext.Categories
-            .Where(c => c.Id == id)
-            .ExecuteDeleteAsync();
+            .Where(c => c.Id == id && !c.IsDeleted)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(c => c.IsDeleted, true)); // Soft delete
 
         if (noOfRowsAffected <= 0)
             return AppResult.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Category not found."]);
