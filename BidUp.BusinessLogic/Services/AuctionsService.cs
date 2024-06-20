@@ -46,7 +46,7 @@ public class AuctionsService : IAuctionsService
     private async Task<AppResult> ValidateCategoryAndCity(int categoryId, int cityId)
     {
         // Multiple active operations on the same context instance are not supported so i cant do these 2 calls concurently using Task.WhenAll 
-        var isValidCategory = await appDbContext.Categories.AnyAsync(c => c.Id == categoryId);
+        var isValidCategory = await appDbContext.Categories.AnyAsync(c => c.Id == categoryId && !c.IsDeleted);
         var isValidCity = await appDbContext.Cities.AnyAsync(c => c.Id == cityId);
 
         if (!isValidCategory)
