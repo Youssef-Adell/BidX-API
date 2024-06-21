@@ -5,6 +5,7 @@ namespace BidUp.BusinessLogic.Interfaces;
 
 public interface IAuctionsService
 {
+    Task<AppResult<AuctionDetailsResponse>> GetAuction(int auctionId);
     Task<AppResult<AuctionResponse>> CreateAuction(int currentUserId, CreateAuctionRequest createAuctionRequest, IEnumerable<Stream> productImages);
     Task<AppResult> DeleteAuction(int currentUserId, int auctionId);
 }

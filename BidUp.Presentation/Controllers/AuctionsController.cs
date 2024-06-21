@@ -26,6 +26,19 @@ public class AuctionsController : ControllerBase
         this.hubContext = hubContext;
     }
 
+
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetAuction(int id)
+    {
+        var result = await auctionsService.GetAuction(id);
+
+        if (!result.Succeeded)
+            return NotFound(result.Error);
+
+        return Ok(result.Response);
+    }
+
+
     /// <summary>
     /// Invokes SignalR client function "AuctionCreated(AuctionResponse createdAuction)" on all connected clients
     /// </summary>
