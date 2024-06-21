@@ -26,12 +26,27 @@ public class AuctionsController : ControllerBase
         this.hubContext = hubContext;
     }
 
+
+    [HttpGet("{id}")]
+    [ProducesResponseType(typeof(AuctionDetailsResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetAuction(int id)
+    {
+        var result = await auctionsService.GetAuction(id);
+
+        if (!result.Succeeded)
+            return NotFound(result.Error);
+
+        return Ok(result.Response);
+    }
+
+
     /// <summary>
     /// Invokes SignalR client function "AuctionCreated(AuctionResponse createdAuction)" on all connected clients
     /// </summary>
     [HttpPost]
     [Authorize]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(AuctionDetailsResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status422UnprocessableEntity)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> CreateAuction([FromForm] CreateAuctionRequest createAuctionRequest, [Required][Length(1, 10, ErrorMessage = "The ProductImages field is required and must has 1 item at least item and 10 items at max.")] IEnumerable<IFormFile> productImages)
@@ -49,7 +64,9 @@ public class AuctionsController : ControllerBase
 
             await hubContext.Clients.All.AuctionCreated(result.Response!);
 
-            return NoContent(); // To be changed later to CreatedAtAction after implementing GetAuction endpoint.
+            var createdAuction = (await auctionsService.GetAuction(result.Response!.Id)).Response!;
+
+            return CreatedAtAction(nameof(GetAuction), new { id = createdAuction.Id }, createdAuction);
         }
         finally
         {   // Even if return is called within the try block, the finally block will still be executed.

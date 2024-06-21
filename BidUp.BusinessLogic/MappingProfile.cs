@@ -25,5 +25,23 @@ public class MappingProfile : Profile
             .ForMember(d => d.ProductName, o => o.MapFrom(s => s.Product.Name))
             .ForMember(d => d.CurrentPrice, o => o.MapFrom(s => s.HighestBid != null ? s.HighestBid.Amount : s.StartingPrice))
             .ForMember(d => d.ThumbnailUrl, o => o.MapFrom(s => s.Product.ThumbnailUrl));
+
+
+        CreateMap<Auction, AuctionDetailsResponse>()
+            .ForMember(d => d.ProductName, o => o.MapFrom(s => s.Product.Name))
+            .ForMember(d => d.ProductDescription, o => o.MapFrom(s => s.Product.Description))
+            .ForMember(d => d.ProductCondition, o => o.MapFrom(s => s.Product.Condition))
+            .ForMember(d => d.CurrentPrice, o => o.MapFrom(s => s.HighestBid != null ? s.HighestBid.Amount : s.StartingPrice))
+            .ForMember(d => d.Category, o => o.MapFrom(s => s.Category!.Name))
+            .ForMember(d => d.City, o => o.MapFrom(s => s.City!.Name))
+            .ForMember(d => d.Auctioneer, o => o.MapFrom(s => new Auctioneer
+            {
+                Id = s.AuctioneerId,
+                Name = string.Concat(s.Auctioneer!.FirstName, " ", s.Auctioneer.LastName),
+                ProfilePictureUrl = s.Auctioneer.ProfilePictureUrl
+            }))
+            .ForMember(d => d.Images, o => o.MapFrom(s => s.Product.Images.Select(i => i.Url)));
+
+
     }
 }

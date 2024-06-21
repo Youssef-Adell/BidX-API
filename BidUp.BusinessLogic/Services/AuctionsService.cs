@@ -21,6 +21,26 @@ public class AuctionsService : IAuctionsService
         this.mapper = mapper;
     }
 
+    public async Task<AppResult<AuctionDetailsResponse>> GetAuction(int auctionId)
+    {
+        var auction = await appDbContext.Auctions
+            .Include(a => a.Product)
+            .ThenInclude(p => p.Images)
+            .Include(a => a.Category)
+            .Include(a => a.City)
+            .Include(a => a.Auctioneer)
+            .Include(a => a.HighestBid)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Id == auctionId);
+
+        if (auction is null)
+            return AppResult<AuctionDetailsResponse>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Auction not found."]);
+
+        var response = mapper.Map<AuctionDetailsResponse>(auction);
+
+        return AppResult<AuctionDetailsResponse>.Success(response);
+    }
+
     public async Task<AppResult<AuctionResponse>> CreateAuction(int currentUserId, CreateAuctionRequest createAuctionRequest, IEnumerable<Stream> productImages)
     {
         var validationResult = await ValidateCategoryAndCity(createAuctionRequest.CategoryId, createAuctionRequest.CityId);
