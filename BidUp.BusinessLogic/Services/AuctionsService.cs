@@ -21,14 +21,14 @@ public class AuctionsService : IAuctionsService
         this.mapper = mapper;
     }
 
-    public async Task<AppResult<AuctionResponse>> CreateAuction(int auctioneerId, CreateAuctionRequest createAuctionRequest, IEnumerable<Stream> productImages)
+    public async Task<AppResult<AuctionResponse>> CreateAuction(int currentUserId, CreateAuctionRequest createAuctionRequest, IEnumerable<Stream> productImages)
     {
         var validationResult = await ValidateCategoryAndCity(createAuctionRequest.CategoryId, createAuctionRequest.CityId);
         if (!validationResult.Succeeded)
             return AppResult<AuctionResponse>.Failure(validationResult.Error!.ErrorCode, validationResult.Error.ErrorMessages);
 
         var auction = mapper.Map<CreateAuctionRequest, Auction>(createAuctionRequest);
-        auction.AuctioneerId = auctioneerId;
+        auction.AuctioneerId = currentUserId;
         auction.SetTime(createAuctionRequest.DurationInSeconds);
 
         var assigningResult = await AssignImagesToAuction(auction, productImages);
@@ -40,6 +40,18 @@ public class AuctionsService : IAuctionsService
 
         var response = mapper.Map<Auction, AuctionResponse>(auction);
         return AppResult<AuctionResponse>.Success(response);
+    }
+
+    public async Task<AppResult> DeleteAuction(int currentUserId, int auctionId)
+    {
+        var noOfRowsAffected = await appDbContext.Auctions
+            .Where(a => a.Id == auctionId && a.AuctioneerId == currentUserId)
+            .ExecuteDeleteAsync();
+
+        if (noOfRowsAffected <= 0)
+            return AppResult.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Auction not found."]);
+
+        return AppResult.Success();
     }
 
 

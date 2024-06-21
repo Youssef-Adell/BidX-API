@@ -58,4 +58,20 @@ public class AuctionsController : ControllerBase
                 await image.DisposeAsync();
         }
     }
+
+
+    [HttpDelete("id")]
+    [Authorize]
+    public async Task<IActionResult> DeleteAuction(int id)
+    {
+        var userId = int.Parse(User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value!);
+
+        var result = await auctionsService.DeleteAuction(userId, id);
+
+        if (!result.Succeeded)
+            return NotFound(result.Error);
+
+        return NoContent();
+    }
+
 }
