@@ -4,5 +4,6 @@ namespace BidUp.Presentation.Hubs;
 
 public interface IAppHubClient
 {
-    Task AuctionCreated(AuctionResponse auctionResponse);
+    Task AuctionCreated(AuctionResponse createdAuction);
+    Task AuctionDeleted(int auctionId);
 }
