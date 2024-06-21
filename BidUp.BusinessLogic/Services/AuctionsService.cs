@@ -1,6 +1,7 @@
 using AutoMapper;
 using BidUp.BusinessLogic.DTOs.AuctionDTOs;
 using BidUp.BusinessLogic.DTOs.CommonDTOs;
+using BidUp.BusinessLogic.DTOs.QueryParamsDTOs;
 using BidUp.BusinessLogic.Interfaces;
 using BidUp.DataAccess;
 using BidUp.DataAccess.Entites;
@@ -21,14 +22,26 @@ public class AuctionsService : IAuctionsService
         this.mapper = mapper;
     }
 
-    public async Task<IEnumerable<AuctionResponse>> GetAuctions()
+    public async Task<Page<AuctionResponse>> GetAuctions(PaginationQueryParams queryParams)
     {
-        var auctions = await appDbContext.Auctions
-            .Include(a => a.Product)
+        var filterdAuctions = appDbContext.Auctions
+            .Include(a => a.Product);
+
+        // Use the above query to get the total count of filterd auctions before applying the pagination
+        var totalAuctionsCount = await filterdAuctions.CountAsync();
+
+        var auctions = await filterdAuctions
+            // Get the newly created auctions first
+            .OrderByDescending(a => a.Id)
+            // Paginate
+            .Skip((queryParams.Page - 1) * queryParams.PageSize)
+            .Take(queryParams.PageSize)
             .AsNoTracking()
             .ToListAsync();
 
-        var response = mapper.Map<IEnumerable<AuctionResponse>>(auctions);
+        var auctionsResponses = mapper.Map<IEnumerable<AuctionResponse>>(auctions);
+
+        var response = new Page<AuctionResponse>(auctionsResponses, queryParams.Page, queryParams.PageSize, totalAuctionsCount);
 
         return response;
     }

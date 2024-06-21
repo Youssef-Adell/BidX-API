@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using BidUp.BusinessLogic.DTOs.AuctionDTOs;
 using BidUp.BusinessLogic.DTOs.CommonDTOs;
+using BidUp.BusinessLogic.DTOs.QueryParamsDTOs;
 using BidUp.BusinessLogic.Interfaces;
 using BidUp.Presentation.Hubs;
 using Microsoft.AspNetCore.Authorization;
@@ -28,9 +29,9 @@ public class AuctionsController : ControllerBase
 
 
     [HttpGet]
-    public async Task<IActionResult> GetAuctions()
+    public async Task<IActionResult> GetAuctions([FromQuery] PaginationQueryParams queryParams)
     {
-        var response = await auctionsService.GetAuctions();
+        var response = await auctionsService.GetAuctions(queryParams);
 
         return Ok(response);
     }
