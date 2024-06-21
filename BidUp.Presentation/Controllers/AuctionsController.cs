@@ -62,7 +62,9 @@ public class AuctionsController : ControllerBase
 
             await hubContext.Clients.All.AuctionCreated(result.Response!);
 
-            return NoContent(); // To be changed later to CreatedAtAction after implementing GetAuction endpoint.
+            var createdAuction = (await auctionsService.GetAuction(result.Response!.Id)).Response!;
+
+            return CreatedAtAction(nameof(GetAuction), new { id = createdAuction.Id }, createdAuction);
         }
         finally
         {   // Even if return is called within the try block, the finally block will still be executed.
