@@ -58,4 +58,28 @@ public class AuctionsController : ControllerBase
                 await image.DisposeAsync();
         }
     }
+
+
+    /// <summary>
+    /// Invokes SignalR client function "AuctionDeleted(int auctionId)" on all connected clients
+    /// </summary>
+    [HttpDelete("id")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> DeleteAuction(int id)
+    {
+        var userId = int.Parse(User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value!);
+
+        var result = await auctionsService.DeleteAuction(userId, id);
+
+        if (!result.Succeeded)
+            return NotFound(result.Error);
+
+        await hubContext.Clients.All.AuctionDeleted(id);
+
+        return NoContent();
+    }
+
 }
