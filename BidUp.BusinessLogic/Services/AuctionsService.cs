@@ -21,6 +21,18 @@ public class AuctionsService : IAuctionsService
         this.mapper = mapper;
     }
 
+    public async Task<IEnumerable<AuctionResponse>> GetAuctions()
+    {
+        var auctions = await appDbContext.Auctions
+            .Include(a => a.Product)
+            .AsNoTracking()
+            .ToListAsync();
+
+        var response = mapper.Map<IEnumerable<AuctionResponse>>(auctions);
+
+        return response;
+    }
+
     public async Task<AppResult<AuctionDetailsResponse>> GetAuction(int auctionId)
     {
         var auction = await appDbContext.Auctions

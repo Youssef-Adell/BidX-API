@@ -27,6 +27,15 @@ public class AuctionsController : ControllerBase
     }
 
 
+    [HttpGet]
+    public async Task<IActionResult> GetAuctions()
+    {
+        var response = await auctionsService.GetAuctions();
+
+        return Ok(response);
+    }
+
+
     [HttpGet("{id}")]
     [ProducesResponseType(typeof(AuctionDetailsResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
