@@ -29,7 +29,7 @@ public class AuctionsController : ControllerBase
 
 
     [HttpGet]
-    public async Task<IActionResult> GetAuctions([FromQuery] PaginationQueryParams queryParams)
+    public async Task<IActionResult> GetAuctions([FromQuery] AuctionsQueryParams queryParams)
     {
         var response = await auctionsService.GetAuctions(queryParams);
 
