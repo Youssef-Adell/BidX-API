@@ -29,6 +29,7 @@ public class AuctionsController : ControllerBase
 
 
     [HttpGet]
+    [ProducesResponseType(typeof(Page<AuctionResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAuctions([FromQuery] AuctionsQueryParams queryParams)
     {
         var response = await auctionsService.GetAuctions(queryParams);
