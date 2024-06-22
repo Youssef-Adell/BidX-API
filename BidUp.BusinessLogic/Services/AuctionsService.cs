@@ -1,10 +1,12 @@
 using AutoMapper;
 using BidUp.BusinessLogic.DTOs.AuctionDTOs;
 using BidUp.BusinessLogic.DTOs.CommonDTOs;
+using BidUp.BusinessLogic.DTOs.QueryParamsDTOs;
 using BidUp.BusinessLogic.Interfaces;
 using BidUp.DataAccess;
 using BidUp.DataAccess.Entites;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 
 namespace BidUp.BusinessLogic.Services;
 
@@ -19,6 +21,36 @@ public class AuctionsService : IAuctionsService
         this.appDbContext = appDbContext;
         this.cloudService = cloudService;
         this.mapper = mapper;
+    }
+
+    public async Task<Page<AuctionResponse>> GetAuctions(AuctionsQueryParams queryParams)
+    {
+        var filterdAuctions = appDbContext.Auctions
+            .Include(a => a.Product)
+            // Search & Filter (Short circuit if a query param has no value)
+            .Where(a => (queryParams.Search.IsNullOrEmpty() || a.Product.Name.ToLower().Contains(queryParams.Search!)) && // I wont add and index for Product.Name because this query is non-sargable so it cannot efficiently use indexes (https://stackoverflow.com/a/4268107, https://stackoverflow.com/a/799616)
+                        (queryParams.CategoryId == null || a.CategoryId == queryParams.CategoryId) &&
+                        (queryParams.CityId == null || a.CityId == queryParams.CityId) &&
+                        (queryParams.ProductCondition == null || a.Product.Condition == queryParams.ProductCondition) &&
+                        (queryParams.ActiveOnly == false || a.EndTime > DateTime.UtcNow)); // I think adding an index for Auction.EndTime not worth because the small tables rarely benefit from indexs in addition to it slow the writting operations
+
+        // Use the above query to get the total count of filterd auctions before applying the pagination
+        var totalAuctionsCount = await filterdAuctions.CountAsync();
+
+        var auctions = await filterdAuctions
+            // Get the last auctions first
+            .OrderByDescending(a => a.Id)
+            // Paginate
+            .Skip((queryParams.Page - 1) * queryParams.PageSize)
+            .Take(queryParams.PageSize)
+            .AsNoTracking()
+            .ToListAsync();
+
+        var auctionsResponses = mapper.Map<IEnumerable<AuctionResponse>>(auctions);
+
+        var response = new Page<AuctionResponse>(auctionsResponses, queryParams.Page, queryParams.PageSize, totalAuctionsCount);
+
+        return response;
     }
 
     public async Task<AppResult<AuctionDetailsResponse>> GetAuction(int auctionId)
