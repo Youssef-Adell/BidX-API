@@ -73,7 +73,7 @@ public class AuctionsController : ControllerBase
             if (!result.Succeeded)
                 return UnprocessableEntity(result.Error);
 
-            await hubContext.Clients.All.AuctionCreated(result.Response!);
+            await hubContext.Clients.Group("AuctionsFeed").AuctionCreated(result.Response!); // Notify only the clients who currently in the feed page
 
             var createdAuction = (await auctionsService.GetAuction(result.Response!.Id)).Response!;
 
@@ -105,7 +105,7 @@ public class AuctionsController : ControllerBase
         if (!result.Succeeded)
             return NotFound(result.Error);
 
-        await hubContext.Clients.All.AuctionDeletedOrEnded(id);
+        await hubContext.Clients.Group("AuctionsFeed").AuctionDeletedOrEnded(id); // Notify only the clients who currently in the feed page
 
         return NoContent();
     }
