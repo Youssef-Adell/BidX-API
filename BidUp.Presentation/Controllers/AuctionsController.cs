@@ -53,7 +53,7 @@ public class AuctionsController : ControllerBase
 
 
     /// <summary>
-    /// Invokes SignalR client function "AuctionCreated(AuctionResponse createdAuction)" on all connected clients
+    /// Invokes "AuctionCreated(AuctionResponse createdAuction)" on the SignalR clients who are currently in the auctions feed page
     /// </summary>
     [HttpPost]
     [Authorize]
@@ -89,7 +89,7 @@ public class AuctionsController : ControllerBase
 
 
     /// <summary>
-    /// Invokes SignalR client function "AuctionDeleted(int auctionId)" on all connected clients
+    /// Invokes "AuctionDeletedOrEnded(int auctionId)" on the SignalR clients who are currently in the auctions feed page
     /// </summary>
     [HttpDelete("id")]
     [Authorize]

@@ -1,0 +1,80 @@
+[33m8ba8822[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mnotify-intersted-signalR-clients-only[m[33m)[m Notify only clients who currently in the feed page with feed updates
+[33m9a3c7c8[m Rename AuctionDeleted signalR client method to AuctionCreatedOrEnded
+[33mfd3156e[m[33m ([m[1;31morigin/main[m[33m, [m[1;32mmain[m[33m)[m feat:⚡add get auctions endpoint (#21)
+[33mb2fd84b[m[33m ([m[1;31morigin/get-auctions-endpoint[m[33m)[m Document GetAuctions endpoint
+[33me980d9c[m Support searching and filtring in GetAuctions endpoint
+[33m6767f4f[m Support pagination in GetAuctions endpoint
+[33m0b29b5e[m Add GetAuctions endpoint
+[33m34e74c3[m feat:⚡add get auction endpoint (#20)
+[33mb62cfdc[m[33m ([m[1;31morigin/get-auction-endpoint[m[33m)[m Document GetAuction endpoint
+[33m5651956[m Change the response of CreateAuction endpoint to return 201 with the created auction
+[33m15e4eed[m Add get auction endpoint
+[33m3f7b319[m feat:⚡add real-time auction deletion functionality (#19)
+[33mb9f429c[m[33m ([m[1;31morigin/delete-auction-feature[m[33m)[m Document DeleteAuction endpoint
+[33m16cba01[m Send the deleted auction id to connected clients to remove it from their feed
+[33m3a3e00d[m Add delete auction endpoint
+[33me4248a1[m refactor:♻️modify del ete category endpoint to make it performs soft delete (#18)
+[33mf3bbc5a[m[33m ([m[1;31morigin/refactor-category-endpoint-to-soft-delete[m[33m)[m Refactor create auction endpoint to allow only non-deleted category ids
+[33m9cfbb00[m Refactor categories endpoints to perform soft delete
+[33mb540cc1[m  feat:⚡add real-time auction creation functionality (#17)
+[33m465db68[m[33m ([m[1;31morigin/create-auction-feature[m[33m)[m Document CreateAuction endpoint
+[33m74e4670[m Send the created auction to connected users feed in realtime
+[33m486d382[m Create add auction endpoint
+[33m82c8dbb[m Change id type from string to guid in UploadResponse returned from cloud service methods
+[33m017d297[m fix:🐛fix bug of considering CLOUDINARY_URL environment variable value as an invalid by the hosting platform (#16)
+[33m4be4362[m[33m ([m[1;31morigin/fix-cloudinary-bug[m[33m)[m Change the way of creating cloudinary object
+[33mb9c1da3[m feat:⚡allow users to upload an optional profile picture when registering (#15)
+[33mc3f078a[m[33m ([m[1;31morigin/profile-picture-feature[m[33m)[m Allow users to upload an optional profile picture when registering
+[33m21d5481[m Add a method in cloud service to upload a thumbnail
+[33m0df00b4[m docs:📝document categories & cities endpoints (#13)
+[33m1df013a[m[33m ([m[1;31morigin/categories-endpoints-docs[m[33m)[m Remove bad request response from auth endpoints docs to make docs more readable
+[33md0e8fea[m Document categories endpoints
+[33m1fdaece[m Document cities endpoints
+[33m421c1d1[m feat:⚡add crud endpoints for categories (#12)
+[33mcdbb0cd[m[33m ([m[1;31morigin/categories-crud-endpoints[m[33m)[m Create delete category endpoint
+[33m2528fe9[m Create update category endpoint
+[33m6e161aa[m Create add category endpoint
+[33m24bbd60[m Add get category endpoint
+[33m9d3ab86[m Seed database with categories
+[33m62d12a3[m Add get categories endpoint
+[33m8d312f2[m Seed database with egypt cities
+[33m6552c9e[m Fix bug of serializing SERBER_INTERNAL_ERROR code to int instead of string in exception handaller
+[33md906e5a[m Add get cities endpoint
+[33m606d309[m Move interface from services folder to seperate folder
+[33m83b0c87[m refactor:♻️modify the error response to return list of error messages instead of single concatenated message (#11)
+[33m914f15f[m[33m ([m[1;31morigin/refactor-error-response[m[33m)[m Change the name of Data property in AppResult to be Response instead
+[33m89d253e[m Replace the concatenated errorMessage to a list of error messages in the error response
+[33ma80b732[m docs:📝configure swagger and document auth endpoints (#10)
+[33m3e398b7[m[33m ([m[1;31morigin/document-auth-endpoints[m[33m)[m Enable swagger in production environment
+[33mf86e52c[m Serialize enum values to string instead of int to be readable in swagger
+[33mb2d2200[m Change errorCode type from string to ErrorCode enum to be explored by swagger
+[33m52c8115[m Configure swagger and document auth endpoints
+[33me0ea2b3[m feat:⚡add global exception handling middleware & logging (#9)
+[33m3d8c452[m[33m ([m[1;31morigin/global-exception-handling-middleware[m[33m)[m Add serilog console in development and serilog file in production environment
+[33me56bcb2[m Add global exception handaler middleware for non development environments
+[33m69de9e8[m refactor:♻️refactor AppResult class to make the services code more expressive (#8)
+[33mec790dc[m[33m ([m[1;31morigin/refactor-appresult-class[m[33m)[m Refactor AppResult class to make the services code more expressive and readable
+[33m63911cf[m feat:⚡add revoke refresh token functionality (#7)
+[33m01d880e[m[33m ([m[1;31morigin/revoke-refresh-token-feature[m[33m)[m Add a warning about potential vulnerability related to refresh endpoint
+[33m937dbb1[m Create revoke-refresh-token endpoint
+[33mbbd2bca[m feat:⚡add change password functionality (#6)
+[33mcfa30b1[m[33m ([m[1;31morigin/change-password-feature[m[33m)[m Create change-password endpoint
+[33mda333b8[m refactor:♻️read email template id from config & remove humanizer from error messages (#5)
+[33m96a6a0c[m[33m ([m[1;31morigin/refactor-email-template-and-humanizer[m[33m)[m Remove humanizer used to humanize error messages and join them with \n instead
+[33m29df58c[m Read email template id from appsettings file instead of hardcode it in the email service
+[33m162b894[m feat:⚡add forgot password functionality (#4)
+[33m7833d61[m feat:⚡add login & refresh token functionality (#3)
+[33mce39a15[m[33m ([m[1;31morigin/login-feature[m[33m)[m Create refresh endpoint
+[33m2f2b926[m Create login endpoint
+[33m057d902[m feat:⚡add verify email functionality (#2)
+[33m17f210e[m[33m ([m[1;31morigin/verify-email-feature[m[33m)[m Create resend-confirmation-email and confirm-email endpoints
+[33m20437df[m Integrate with  brevo email service
+[33m074e7cc[m feat:⚡add register functionality (#1)
+[33m56a3435[m[33m ([m[1;31morigin/register-feature[m[33m)[m Change password policy to enfore uppercase letters in it
+[33m0443bf2[m Add firstname and lastname properties and ignore username property for registertion process
+[33m7efafd5[m Replace the default bad request error response with my unified error response
+[33m7eaf899[m Create register endpoint
+[33mfc7c4e1[m Seed db with roles, admins accounts and apply migrations automatically at app startup
+[33m68db4e1[m Add and configure required ef and identity packages
+[33m9d748cb[m Prepare project architecture
+[33m12f5460[m intial commit
