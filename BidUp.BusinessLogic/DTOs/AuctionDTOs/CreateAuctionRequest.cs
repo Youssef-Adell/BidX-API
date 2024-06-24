@@ -16,22 +16,22 @@ public class CreateAuctionRequest
     public string? ProductDescription { get; init; }
 
     [Required]
-    [Range(1, ((double)decimal.MaxValue), ErrorMessage = "The StartingPrice field is required and must be greater than 0.")]
+    [Range(1, ((double)decimal.MaxValue), ErrorMessage = "The StartingPrice field is required and must be a positive number.")]
     public decimal StartingPrice { get; init; }
 
     [Required]
-    [Range(1, ((double)decimal.MaxValue), ErrorMessage = "The MinBidIncrement field is required and must be greater than 0.")]
+    [Range(1, ((double)decimal.MaxValue), ErrorMessage = "The MinBidIncrement field is required and must be a positive number")]
     public decimal MinBidIncrement { get; init; }
 
     [Required]
-    [Range(1, long.MaxValue, ErrorMessage = "The DurationInSeconds field is required and must be greater than 0.")]
+    [Range(1, long.MaxValue, ErrorMessage = "The DurationInSeconds field is required and must be a positive number.")]
     public long DurationInSeconds { get; init; }
 
     [Required]
-    [Range(1, int.MaxValue, ErrorMessage = "The CategoryId field is required and must be greater than 0.")]
+    [Range(1, int.MaxValue, ErrorMessage = "The CategoryId field is required and must be a positive number.")]
     public int CategoryId { get; init; }
 
     [Required]
-    [Range(1, int.MaxValue, ErrorMessage = "The CityId field is required and must be greater than 0.")]
+    [Range(1, int.MaxValue, ErrorMessage = "The CityId field is required and must be a positive number.")]
     public int CityId { get; init; }
 }

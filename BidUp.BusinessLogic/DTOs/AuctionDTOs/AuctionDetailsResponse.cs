@@ -23,5 +23,5 @@ public class Auctioneer
 {
     public int Id { get; init; }
     public required string Name { get; init; }
-    public required string? ProfilePictureUrl { get; init; }
+    public string? ProfilePictureUrl { get; init; }
 }
