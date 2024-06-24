@@ -20,6 +20,7 @@ public class Auction
     public Bid? HighestBid { get; set; }
     public ICollection<Bid> Bids { get; } = new List<Bid>();
 
+    public bool IsActive { get => EndTime.CompareTo(DateTime.UtcNow) > 0; }
     public void SetTime(long durationInSeconds)
     {
         StartTime = DateTime.UtcNow;
