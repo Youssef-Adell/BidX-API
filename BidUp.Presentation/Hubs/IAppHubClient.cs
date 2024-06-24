@@ -8,6 +8,7 @@ public interface IAppHubClient
 {
     Task AuctionCreated(AuctionResponse createdAuction);
     Task AuctionDeletedOrEnded(int auctionId);
+    Task AuctionPriceUpdated(int auctionId, decimal newPrice);
     Task BidCreated(BidResponse createdBid);
     Task ErrorOccurred(ErrorResponse error);
 }

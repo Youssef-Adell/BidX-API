@@ -33,6 +33,7 @@ public class AppHub : Hub<IAppHubClient>
         var auctionRoom = result.Response!.AuctionId.ToString();
 
         await Clients.Group(auctionRoom).BidCreated(result.Response!); // Notify clients who currently in the page of this auction
+        await Clients.Group("AuctionsFeed").AuctionPriceUpdated(result.Response.AuctionId, result.Response.Amount);
     }
 
     // The client must call this method when the auction page loads to be able to receive bidding updates in realtime
