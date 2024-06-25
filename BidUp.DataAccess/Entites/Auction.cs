@@ -20,6 +20,7 @@ public class Auction
     public Bid? HighestBid { get; set; }
     public ICollection<Bid> Bids { get; } = new List<Bid>();
 
+    public decimal CurrentPrice { get => HighestBid is not null ? HighestBid.Amount : StartingPrice; }
     public bool IsActive { get => EndTime.CompareTo(DateTime.UtcNow) > 0; }
     public void SetTime(long durationInSeconds)
     {

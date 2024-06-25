@@ -13,7 +13,6 @@ public class BiddingService : IBiddingService
     private readonly AppDbContext appDbContext;
     private readonly IMapper mapper;
 
-
     public BiddingService(AppDbContext appDbContext, IMapper mapper)
     {
         this.appDbContext = appDbContext;
@@ -23,40 +22,57 @@ public class BiddingService : IBiddingService
 
     public async Task<AppResult<BidResponse>> BidUp(int bidderId, BidRequest bidRequest)
     {
-        // ensure that the auction is exist & active
         var auction = await appDbContext.Auctions
             .Include(a => a.HighestBid)
             .FirstOrDefaultAsync(a => a.Id == bidRequest.AuctionId);
 
-        if (auction is null)
-            return AppResult<BidResponse>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Auction not found."]);
+        var auctionValidationResult = ValidateAuctionStatus(auction);
+        if (!auctionValidationResult.Succeeded)
+            return AppResult<BidResponse>.Failure(auctionValidationResult.Error!.ErrorCode, auctionValidationResult.Error.ErrorMessages);
 
-        if (!auction.IsActive)
-            return AppResult<BidResponse>.Failure(ErrorCode.AUCTION_ENDED, ["Auction has ended."]);
+        var bidValidationResult = ValidateBid(bidderId, auction!, bidRequest);
+        if (!bidValidationResult.Succeeded)
+            return AppResult<BidResponse>.Failure(bidValidationResult.Error!.ErrorCode, bidValidationResult.Error.ErrorMessages);
 
-        // ensure that this bid amount > the last bid amount and current bid Increment > min bid increment
-        if (bidRequest.Amount <= auction.HighestBid?.Amount)
-            return AppResult<BidResponse>.Failure(ErrorCode.BID_AMOUNT_INVALID, ["Your bid must be greater than the last bid."]);
-
-        var currentBidInrement = bidRequest.Amount - (auction.HighestBid is not null ? auction.HighestBid.Amount : auction.StartingPrice);
-
-        if (currentBidInrement < auction.MinBidIncrement)
-            return AppResult<BidResponse>.Failure(ErrorCode.BID_AMOUNT_INVALID, [$"Your bid increment be greater than {auction.MinBidIncrement}."]);
-
-        // create the bid and assign it to the auction as the highest bid
+        // Create the bid and assign it to the auction as the highest bid
         var bid = mapper.Map<BidRequest, Bid>(bidRequest);
         bid.BidderId = bidderId;
-
-        auction.HighestBid = bid;
+        auction!.HighestBid = bid;
         await appDbContext.SaveChangesAsync();
 
-        // map the bid to bidResponse and return it
+        // Map the bid to a BidResponse
         bid.Bidder = appDbContext.Users
                 .AsNoTracking()
                 .FirstOrDefault(u => u.Id == bidderId);
-
         var response = mapper.Map<Bid, BidResponse>(bid);
+
         return AppResult<BidResponse>.Success(response);
     }
 
+
+    private AppResult ValidateAuctionStatus(Auction? auction)
+    {
+        if (auction is null)
+            return AppResult.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Auction not found."]);
+
+        if (!auction.IsActive)
+            return AppResult.Failure(ErrorCode.AUCTION_ENDED, ["Auction has ended."]);
+
+        return AppResult.Success();
+    }
+
+    private AppResult ValidateBid(int bidderId, Auction auction, BidRequest bidRequest)
+    {
+        if (auction.AuctioneerId == bidderId)
+            return AppResult.Failure(ErrorCode.BID_NOT_ALLOWED, ["You can't bid on your own auction."]);
+
+        if (bidRequest.Amount <= auction.HighestBid?.Amount)
+            return AppResult.Failure(ErrorCode.BID_AMOUNT_INVALID, ["Your bid must be greater than the last bid."]);
+
+        var currentBidInrement = bidRequest.Amount - auction.CurrentPrice;
+        if (currentBidInrement < auction.MinBidIncrement)
+            return AppResult.Failure(ErrorCode.BID_AMOUNT_INVALID, [$"Your bid increment must be greater than or equal to {auction.MinBidIncrement}."]);
+
+        return AppResult.Success();
+    }
 }

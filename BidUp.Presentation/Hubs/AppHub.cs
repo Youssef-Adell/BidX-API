@@ -20,7 +20,7 @@ public class AppHub : Hub<IAppHubClient>
     [Authorize]
     public async Task BidUp(BidRequest bidRequest)
     {
-        var userId = int.Parse(Context.User!.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value!);
+        var userId = int.Parse(Context.UserIdentifier!);
 
         var result = await biddingService.BidUp(userId, bidRequest);
 
