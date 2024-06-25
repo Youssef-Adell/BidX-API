@@ -27,6 +27,7 @@ public class AuctionsService : IAuctionsService
     {
         var filterdAuctions = appDbContext.Auctions
             .Include(a => a.Product)
+            .Include(a => a.HighestBid)
             // Search & Filter (Short circuit if a query param has no value)
             .Where(a => (queryParams.Search.IsNullOrEmpty() || a.Product.Name.ToLower().Contains(queryParams.Search!)) && // I wont add and index for Product.Name because this query is non-sargable so it cannot efficiently use indexes (https://stackoverflow.com/a/4268107, https://stackoverflow.com/a/799616)
                         (queryParams.CategoryId == null || a.CategoryId == queryParams.CategoryId) &&
