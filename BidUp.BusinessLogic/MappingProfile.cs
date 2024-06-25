@@ -1,5 +1,6 @@
 using AutoMapper;
 using BidUp.BusinessLogic.DTOs.AuctionDTOs;
+using BidUp.BusinessLogic.DTOs.BidDTOs;
 using BidUp.BusinessLogic.DTOs.CategoryDTOs;
 using BidUp.BusinessLogic.DTOs.CityDTOs;
 using BidUp.DataAccess.Entites;
@@ -9,10 +10,12 @@ public class MappingProfile : Profile
 {
     public MappingProfile()
     {
+        //---Categories & Cities---
         CreateMap<City, CityResponse>();
 
         CreateMap<Category, CategoryResponse>();
 
+        //---Auctions---
         CreateMap<CreateAuctionRequest, Auction>()
             .AfterMap((s, d) => d.Product = new()
             {
@@ -42,6 +45,15 @@ public class MappingProfile : Profile
             }))
             .ForMember(d => d.Images, o => o.MapFrom(s => s.Product.Images.Select(i => i.Url)));
 
+        //---Bids---
+        CreateMap<BidRequest, Bid>();
+        CreateMap<Bid, BidResponse>()
+            .ForMember(d => d.Bidder, o => o.MapFrom(s => new Bidder
+            {
+                Id = s.Bidder!.Id,
+                Name = string.Concat(s.Bidder!.FirstName, " ", s.Bidder.LastName),
+                ProfilePictureUrl = s.Bidder.ProfilePictureUrl
+            }));
 
     }
 }

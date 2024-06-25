@@ -108,6 +108,26 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Environment.GetEnvironmentVariable("BIDUP_JWT_SECRET_KEY")!)),
         ClockSkew = TimeSpan.FromSeconds(30), //if we diidnt change its default value the token will be still valid for additional 5 minutes after its expiration time https://www.youtube.com/watch?v=meBxWjA_2YY
     };
+
+    // The access token is sent in the query string when SignalR uses WebSockets or ServerSentEvents due to a limitation in Browser APIs.
+    // So I have to hook the OnMessageReceived event in order to allow the JWT authentication handler to read the access token
+    // from the query string when a WebSocket or Server-Sent Events request comes in. (for more: https://youtu.be/mrCxfifTepU?si=Zj6Ghx0aZEVFELPL, https://learn.microsoft.com/en-us/aspnet/core/signalr/authn-and-authz).
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var accessToken = context.Request.Query["access_token"];
+
+            // Read the token from the query string for requests that come to our SignalR hub only
+            var path = context.HttpContext.Request.Path;
+            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/appHub"))
+            {
+                // Read the token out of the query string
+                context.Token = accessToken;
+            }
+            return Task.CompletedTask;
+        }
+    };
 });
 
 // https://nblumhardt.com/2024/04/serilog-net8-0-minimal
@@ -118,7 +138,7 @@ builder.Services.AddSignalR();
 builder.Services.AddCors(options =>
 {
     // To be able to test signalR hub using JS client
-    options.AddPolicy(name: "DevelopmentPolicy", policy => policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
+    options.AddPolicy(name: "DevelopmentPolicy", policy => policy.WithOrigins("http://127.0.0.1:5500").AllowAnyMethod().AllowAnyHeader().AllowCredentials());
 });
 
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -127,6 +147,7 @@ builder.Services.AddScoped<ICitiesService, CitiesServices>();
 builder.Services.AddScoped<ICategoriesService, CategoriesService>();
 builder.Services.AddScoped<ICloudService, CloudinaryCloudService>();
 builder.Services.AddScoped<IAuctionsService, AuctionsService>();
+builder.Services.AddScoped<IBiddingService, BiddingService>();
 
 
 var app = builder.Build();
