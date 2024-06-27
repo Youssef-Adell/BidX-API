@@ -4,6 +4,7 @@ public class BidResponse
 {
     public int Id { get; init; }
     public decimal Amount { get; init; }
+    public DateTime BidTime { get; init; }
     public int AuctionId { get; init; }
     public required Bidder Bidder { get; init; }
 }
