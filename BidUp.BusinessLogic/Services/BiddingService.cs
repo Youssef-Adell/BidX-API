@@ -42,11 +42,24 @@ public class BiddingService : IBiddingService
 
         // Map the bid to a BidResponse
         bid.Bidder = appDbContext.Users
-                .AsNoTracking()
-                .FirstOrDefault(u => u.Id == bidderId);
+            .AsNoTracking()
+            .FirstOrDefault(u => u.Id == bidderId);
         var response = mapper.Map<Bid, BidResponse>(bid);
 
         return AppResult<BidResponse>.Success(response);
+    }
+
+    public async Task<IEnumerable<BidResponse>> GetAuctionBids(int auctionId)
+    {
+        var bids = await appDbContext.Bids
+            .Include(b => b.Bidder)
+            .Where(b => b.AuctionId == auctionId)
+            .AsNoTracking()
+            .ToListAsync();
+
+        var response = mapper.Map<IEnumerable<Bid>, IEnumerable<BidResponse>>(bids);
+
+        return response;
     }
 
 

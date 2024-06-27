@@ -13,7 +13,7 @@ using Microsoft.AspNetCore.SignalR;
 namespace BidUp.Presentation.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/auctions")]
 [Produces("application/json")]
 [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
 public class AuctionsController : ControllerBase
