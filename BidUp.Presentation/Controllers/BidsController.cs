@@ -1,4 +1,5 @@
 using BidUp.BusinessLogic.DTOs.BidDTOs;
+using BidUp.BusinessLogic.DTOs.CommonDTOs;
 using BidUp.BusinessLogic.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -6,6 +7,8 @@ namespace BidUp.Presentation.Controllers;
 
 [ApiController]
 [Route("api/auctions/{auctionId}/bids")]
+[Produces("application/json")]
+[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
 public class BidsController : ControllerBase
 {
     private readonly IBiddingService biddingService;
@@ -19,6 +22,7 @@ public class BidsController : ControllerBase
 
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<BidResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetAuctionBids(int auctionId)
     {
         var result = await biddingService.GetAuctionBids(auctionId);
