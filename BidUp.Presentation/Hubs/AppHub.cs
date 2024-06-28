@@ -30,11 +30,33 @@ public class AppHub : Hub<IAppHubClient>
             return;
         }
 
-        var auctionRoom = result.Response!.AuctionId.ToString();
+        var createdBid = result.Response!;
+        var auctionGroup = createdBid.AuctionId.ToString();
 
-        await Clients.Group(auctionRoom).BidCreated(result.Response!); // Notify clients who currently in the page of this auction
-        await Clients.Group("AuctionsFeed").AuctionPriceUpdated(result.Response.AuctionId, result.Response.Amount);
+        await Clients.Group(auctionGroup).BidCreated(createdBid); // Notify clients who currently in the page of this auction
+        await Clients.Group("AuctionsFeed").AuctionPriceUpdated(createdBid.AuctionId, createdBid.Amount);
     }
+
+    [Authorize]
+    public async Task AcceptBid(int bidId)
+    {
+        var userId = int.Parse(Context.UserIdentifier!);
+
+        var result = await biddingService.AcceptBid(userId, bidId);
+
+        if (!result.Succeeded)
+        {
+            await Clients.Caller.ErrorOccurred(result.Error!);
+            return;
+        }
+
+        var acceptedBid = result.Response!;
+        var auctionGroup = acceptedBid.AuctionId.ToString();
+
+        await Clients.Group(auctionGroup).BidAccepted(acceptedBid); // Notify clients who currently in the page of this auction
+        await Clients.Group("AuctionsFeed").AuctionDeletedOrEnded(acceptedBid.AuctionId);
+    }
+
 
     // The client must call this method when the auction page loads to be able to receive bidding updates in realtime
     public async Task JoinAuctionRoom(int auctionId)
