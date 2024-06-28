@@ -49,8 +49,14 @@ public class BiddingService : IBiddingService
         return AppResult<BidResponse>.Success(response);
     }
 
-    public async Task<IEnumerable<BidResponse>> GetAuctionBids(int auctionId)
+    public async Task<AppResult<IEnumerable<BidResponse>>> GetAuctionBids(int auctionId)
     {
+        var auctionExists = await appDbContext.Auctions
+            .AnyAsync(a => a.Id == auctionId);
+
+        if (!auctionExists)
+            return AppResult<IEnumerable<BidResponse>>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Auction not found."]);
+
         var bids = await appDbContext.Bids
             .Include(b => b.Bidder)
             .Where(b => b.AuctionId == auctionId)
@@ -59,7 +65,7 @@ public class BiddingService : IBiddingService
 
         var response = mapper.Map<IEnumerable<Bid>, IEnumerable<BidResponse>>(bids);
 
-        return response;
+        return AppResult<IEnumerable<BidResponse>>.Success(response);
     }
 
 

@@ -21,8 +21,11 @@ public class BidsController : ControllerBase
     [ProducesResponseType(typeof(IEnumerable<BidResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAuctionBids(int auctionId)
     {
-        var response = await biddingService.GetAuctionBids(auctionId);
+        var result = await biddingService.GetAuctionBids(auctionId);
 
-        return Ok(response);
+        if (!result.Succeeded)
+            return NotFound(result.Error);
+
+        return Ok(result.Response);
     }
 }
