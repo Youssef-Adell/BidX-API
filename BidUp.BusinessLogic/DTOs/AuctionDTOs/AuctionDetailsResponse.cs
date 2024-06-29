@@ -16,6 +16,7 @@ public class AuctionDetailsResponse
     public required string City { get; init; }
     public required Auctioneer Auctioneer { get; init; }
     public required IEnumerable<string> Images { get; init; }
+    public int? WinnerId { get; init; } // To allow the client to know if the auction has ended with a winner or not before sending a request to api/auctions/{auctionId}/bids/accepted-bid endpoint
 }
 
 
