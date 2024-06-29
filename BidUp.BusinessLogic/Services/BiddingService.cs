@@ -1,5 +1,4 @@
 using AutoMapper;
-using BidUp.BusinessLogic.DTOs.AuctionDTOs;
 using BidUp.BusinessLogic.DTOs.BidDTOs;
 using BidUp.BusinessLogic.DTOs.CommonDTOs;
 using BidUp.BusinessLogic.Interfaces;
@@ -20,6 +19,43 @@ public class BiddingService : IBiddingService
         this.mapper = mapper;
     }
 
+    public async Task<AppResult<IEnumerable<BidResponse>>> GetAuctionBids(int auctionId)
+    {
+        var auctionExists = await appDbContext.Auctions
+            .AnyAsync(a => a.Id == auctionId);
+
+        if (!auctionExists)
+            return AppResult<IEnumerable<BidResponse>>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Auction not found."]);
+
+        var bids = await appDbContext.Bids
+            .Include(b => b.Bidder)
+            .Where(b => b.AuctionId == auctionId)
+            .AsNoTracking()
+            .ToListAsync();
+
+        var response = mapper.Map<IEnumerable<Bid>, IEnumerable<BidResponse>>(bids);
+
+        return AppResult<IEnumerable<BidResponse>>.Success(response);
+    }
+
+    public async Task<AppResult<BidResponse>> GetAcceptedBid(int auctionId)
+    {
+        var auction = await appDbContext.Auctions
+            .Include(a => a.HighestBid)
+                .ThenInclude(b => b!.Bidder)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(a => a.Id == auctionId);
+
+        if (auction is null)
+            return AppResult<BidResponse>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Auction not found."]);
+
+        if (auction.HighestBid is null || auction.WinnerId is null)
+            return AppResult<BidResponse>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Auction has no accepted bid."]);
+
+        var response = mapper.Map<Bid, BidResponse>(auction.HighestBid);
+
+        return AppResult<BidResponse>.Success(response);
+    }
 
     public async Task<AppResult<BidResponse>> BidUp(int bidderId, BidRequest bidRequest)
     {
@@ -50,25 +86,6 @@ public class BiddingService : IBiddingService
         var response = mapper.Map<Bid, BidResponse>(bid);
 
         return AppResult<BidResponse>.Success(response);
-    }
-
-    public async Task<AppResult<IEnumerable<BidResponse>>> GetAuctionBids(int auctionId)
-    {
-        var auctionExists = await appDbContext.Auctions
-            .AnyAsync(a => a.Id == auctionId);
-
-        if (!auctionExists)
-            return AppResult<IEnumerable<BidResponse>>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Auction not found."]);
-
-        var bids = await appDbContext.Bids
-            .Include(b => b.Bidder)
-            .Where(b => b.AuctionId == auctionId)
-            .AsNoTracking()
-            .ToListAsync();
-
-        var response = mapper.Map<IEnumerable<Bid>, IEnumerable<BidResponse>>(bids);
-
-        return AppResult<IEnumerable<BidResponse>>.Success(response);
     }
 
     public async Task<AppResult<BidResponse>> AcceptBid(int currentUserId, int bidId)
