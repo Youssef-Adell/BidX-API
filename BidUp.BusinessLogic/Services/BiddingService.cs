@@ -57,6 +57,25 @@ public class BiddingService : IBiddingService
         return AppResult<BidResponse>.Success(response);
     }
 
+    public async Task<AppResult<BidResponse>> GetHighestBid(int auctionId)
+    {
+        var auction = await appDbContext.Auctions
+            .Include(a => a.HighestBid)
+                .ThenInclude(b => b!.Bidder)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(a => a.Id == auctionId);
+
+        if (auction is null)
+            return AppResult<BidResponse>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Auction not found."]);
+
+        if (auction.HighestBid is null)
+            return AppResult<BidResponse>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Auction has no bids"]);
+
+        var response = mapper.Map<Bid, BidResponse>(auction.HighestBid);
+
+        return AppResult<BidResponse>.Success(response);
+    }
+
     public async Task<AppResult<BidResponse>> BidUp(int bidderId, BidRequest bidRequest)
     {
         var auction = await appDbContext.Auctions

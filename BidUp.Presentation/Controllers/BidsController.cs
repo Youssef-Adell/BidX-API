@@ -45,4 +45,17 @@ public class BidsController : ControllerBase
 
         return Ok(result.Response);
     }
+
+    [HttpGet("highest-bid")]
+    [ProducesResponseType(typeof(BidResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetHighestBid(int auctionId)
+    {
+        var result = await biddingService.GetHighestBid(auctionId);
+
+        if (!result.Succeeded)
+            return NotFound(result.Error);
+
+        return Ok(result.Response);
+    }
 }
