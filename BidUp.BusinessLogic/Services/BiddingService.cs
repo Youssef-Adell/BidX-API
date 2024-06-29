@@ -1,4 +1,5 @@
 using AutoMapper;
+using BidUp.BusinessLogic.DTOs.AuctionDTOs;
 using BidUp.BusinessLogic.DTOs.BidDTOs;
 using BidUp.BusinessLogic.DTOs.CommonDTOs;
 using BidUp.BusinessLogic.Interfaces;
@@ -26,9 +27,11 @@ public class BiddingService : IBiddingService
             .Include(a => a.HighestBid)
             .FirstOrDefaultAsync(a => a.Id == bidRequest.AuctionId);
 
-        var auctionValidationResult = ValidateAuctionStatus(auction);
-        if (!auctionValidationResult.Succeeded)
-            return AppResult<BidResponse>.Failure(auctionValidationResult.Error!.ErrorCode, auctionValidationResult.Error.ErrorMessages);
+        if (auction is null)
+            return AppResult<BidResponse>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Auction not found."]);
+
+        if (!auction.IsActive)
+            return AppResult<BidResponse>.Failure(ErrorCode.AUCTION_ENDED, ["Auction has ended."]);
 
         var bidValidationResult = ValidateBid(bidderId, auction!, bidRequest);
         if (!bidValidationResult.Succeeded)
@@ -68,16 +71,32 @@ public class BiddingService : IBiddingService
         return AppResult<IEnumerable<BidResponse>>.Success(response);
     }
 
-
-    private AppResult ValidateAuctionStatus(Auction? auction)
+    public async Task<AppResult<BidResponse>> AcceptBid(int currentUserId, int bidId)
     {
-        if (auction is null)
-            return AppResult.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Auction not found."]);
+        var bid = await appDbContext.Bids
+            .Include(b => b.Auction)
+            .Include(b => b.Bidder) // Needed for BidResponse that will be returned
+            .FirstOrDefaultAsync(b => b.Id == bidId);
+
+        if (bid is null)
+            return AppResult<BidResponse>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Bid not found."]);
+
+        var auction = bid.Auction!;
+
+        if (auction.AuctioneerId != currentUserId)
+            return AppResult<BidResponse>.Failure(ErrorCode.PERMISSION_DENIED, ["Only the auction owner can accept this bid."]);
 
         if (!auction.IsActive)
-            return AppResult.Failure(ErrorCode.AUCTION_ENDED, ["Auction has ended."]);
+            return AppResult<BidResponse>.Failure(ErrorCode.AUCTION_ENDED, ["Auction has ended. Bid acceptance is no longer available."]);
 
-        return AppResult.Success();
+        // Set the winner and end the auction
+        auction.WinnerId = bid.BidderId;
+        auction.HighestBidId = bid.Id;
+        auction.EndTime = DateTime.UtcNow;
+        await appDbContext.SaveChangesAsync();
+
+        var response = mapper.Map<Bid, BidResponse>(bid);
+        return AppResult<BidResponse>.Success(response);
     }
 
     private AppResult ValidateBid(int bidderId, Auction auction, BidRequest bidRequest)
