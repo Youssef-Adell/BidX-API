@@ -32,4 +32,17 @@ public class BidsController : ControllerBase
 
         return Ok(result.Response);
     }
+
+    [HttpGet("accepted-bid")]
+    [ProducesResponseType(typeof(BidResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetAcceptedBid(int auctionId)
+    {
+        var result = await biddingService.GetAcceptedBid(auctionId);
+
+        if (!result.Succeeded)
+            return NotFound(result.Error);
+
+        return Ok(result.Response);
+    }
 }
