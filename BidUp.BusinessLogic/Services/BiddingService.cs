@@ -107,12 +107,12 @@ public class BiddingService : IBiddingService
         return AppResult<BidResponse>.Success(response);
     }
 
-    public async Task<AppResult<BidResponse>> AcceptBid(int currentUserId, int bidId)
+    public async Task<AppResult<BidResponse>> AcceptBid(int currentUserId, AcceptBidRequest acceptBidRequest)
     {
         var bid = await appDbContext.Bids
             .Include(b => b.Auction)
             .Include(b => b.Bidder) // Needed for BidResponse that will be returned
-            .FirstOrDefaultAsync(b => b.Id == bidId);
+            .FirstOrDefaultAsync(b => b.Id == acceptBidRequest.BidId);
 
         if (bid is null)
             return AppResult<BidResponse>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Bid not found."]);

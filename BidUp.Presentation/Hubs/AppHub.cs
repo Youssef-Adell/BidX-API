@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using BidUp.BusinessLogic.DTOs.AuctionDTOs;
 using BidUp.BusinessLogic.DTOs.BidDTOs;
 using BidUp.BusinessLogic.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -34,15 +35,15 @@ public class AppHub : Hub<IAppHubClient>
         var auctionGroup = createdBid.AuctionId.ToString();
 
         await Clients.Group(auctionGroup).BidCreated(createdBid); // Notify clients who currently in the page of this auction
-        await Clients.Group("AuctionsFeed").AuctionPriceUpdated(createdBid.AuctionId, createdBid.Amount);
+        await Clients.All.AuctionPriceUpdated(new() { AuctionId = createdBid.AuctionId, NewPrice = createdBid.Amount });
     }
 
     [Authorize]
-    public async Task AcceptBid(int bidId)
+    public async Task AcceptBid(AcceptBidRequest acceptBidRequest)
     {
         var userId = int.Parse(Context.UserIdentifier!);
 
-        var result = await biddingService.AcceptBid(userId, bidId);
+        var result = await biddingService.AcceptBid(userId, acceptBidRequest);
 
         if (!result.Succeeded)
         {
@@ -54,31 +55,19 @@ public class AppHub : Hub<IAppHubClient>
         var auctionGroup = acceptedBid.AuctionId.ToString();
 
         await Clients.Group(auctionGroup).BidAccepted(acceptedBid); // Notify clients who currently in the page of this auction
-        await Clients.Group("AuctionsFeed").AuctionDeletedOrEnded(acceptedBid.AuctionId);
+        await Clients.All.AuctionDeletedOrEnded(new() { AuctionId = acceptedBid.AuctionId });
     }
 
 
     // The client must call this method when the auction page loads to be able to receive bidding updates in realtime
-    public async Task JoinAuctionRoom(int auctionId)
+    public async Task JoinAuctionRoom(JoinAuctionRoomRequest joinAuctionRoomRequest)
     {
-        await Groups.AddToGroupAsync(Context.ConnectionId, auctionId.ToString());
+        await Groups.AddToGroupAsync(Context.ConnectionId, joinAuctionRoomRequest.AuctionId.ToString());
     }
 
     // The client must call this method when the auction page is about to be closed to stop receiving unnecessary bidding updates
-    public async Task LeaveAuctionRoom(int auctionId)
+    public async Task LeaveAuctionRoom(LeaveAuctionRoomRequest leaveAuctionRoomRequest)
     {
-        await Groups.RemoveFromGroupAsync(Context.ConnectionId, auctionId.ToString());
-    }
-
-    // The client must call this method when the feed page loads to be able to receive feed updates in realtime
-    public async Task JoinAuctionsFeedRoom()
-    {
-        await Groups.AddToGroupAsync(Context.ConnectionId, "AuctionsFeed");
-    }
-
-    // The client must call this method when the feed page is about to be closed to stop receiving unnecessary feed updates
-    public async Task LeaveAuctionsFeedRoom()
-    {
-        await Groups.RemoveFromGroupAsync(Context.ConnectionId, "AuctionsFeed");
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, leaveAuctionRoomRequest.AuctionId.ToString());
     }
 }
