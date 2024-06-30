@@ -35,7 +35,7 @@ public class AppHub : Hub<IAppHubClient>
         var auctionGroup = createdBid.AuctionId.ToString();
 
         await Clients.Group(auctionGroup).BidCreated(createdBid); // Notify clients who currently in the page of this auction
-        await Clients.All.AuctionPriceUpdated(createdBid.AuctionId, createdBid.Amount);
+        await Clients.All.AuctionPriceUpdated(new() { AuctionId = createdBid.AuctionId, NewPrice = createdBid.Amount });
     }
 
     [Authorize]
@@ -55,7 +55,7 @@ public class AppHub : Hub<IAppHubClient>
         var auctionGroup = acceptedBid.AuctionId.ToString();
 
         await Clients.Group(auctionGroup).BidAccepted(acceptedBid); // Notify clients who currently in the page of this auction
-        await Clients.All.AuctionDeletedOrEnded(acceptedBid.AuctionId);
+        await Clients.All.AuctionDeletedOrEnded(new() { AuctionId = acceptedBid.AuctionId });
     }
 
 

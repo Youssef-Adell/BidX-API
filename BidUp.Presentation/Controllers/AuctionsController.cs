@@ -105,7 +105,7 @@ public class AuctionsController : ControllerBase
         if (!result.Succeeded)
             return NotFound(result.Error);
 
-        await hubContext.Clients.All.AuctionDeletedOrEnded(id); // Notify all the connected clients
+        await hubContext.Clients.All.AuctionDeletedOrEnded(new() { AuctionId = id }); // Notify all the connected clients
 
         return NoContent();
     }
