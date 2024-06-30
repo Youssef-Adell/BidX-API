@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using BidUp.BusinessLogic.DTOs.AuctionDTOs;
 using BidUp.BusinessLogic.DTOs.BidDTOs;
 using BidUp.BusinessLogic.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -38,11 +39,11 @@ public class AppHub : Hub<IAppHubClient>
     }
 
     [Authorize]
-    public async Task AcceptBid(int bidId)
+    public async Task AcceptBid(AcceptBidRequest acceptBidRequest)
     {
         var userId = int.Parse(Context.UserIdentifier!);
 
-        var result = await biddingService.AcceptBid(userId, bidId);
+        var result = await biddingService.AcceptBid(userId, acceptBidRequest);
 
         if (!result.Succeeded)
         {
@@ -59,14 +60,14 @@ public class AppHub : Hub<IAppHubClient>
 
 
     // The client must call this method when the auction page loads to be able to receive bidding updates in realtime
-    public async Task JoinAuctionRoom(int auctionId)
+    public async Task JoinAuctionRoom(JoinAuctionRoomRequest joinAuctionRoomRequest)
     {
-        await Groups.AddToGroupAsync(Context.ConnectionId, auctionId.ToString());
+        await Groups.AddToGroupAsync(Context.ConnectionId, joinAuctionRoomRequest.AuctionId.ToString());
     }
 
     // The client must call this method when the auction page is about to be closed to stop receiving unnecessary bidding updates
-    public async Task LeaveAuctionRoom(int auctionId)
+    public async Task LeaveAuctionRoom(LeaveAuctionRoomRequest leaveAuctionRoomRequest)
     {
-        await Groups.RemoveFromGroupAsync(Context.ConnectionId, auctionId.ToString());
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, leaveAuctionRoomRequest.AuctionId.ToString());
     }
 }
