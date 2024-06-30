@@ -6,10 +6,10 @@ namespace BidUp.Presentation.Hubs;
 
 public interface IAppHubClient
 {
-    Task AuctionCreated(AuctionResponse createdAuction);
-    Task AuctionDeletedOrEnded(AuctionDeletedOrEndedResponse auctionDeletedOrEndedResponse);
-    Task AuctionPriceUpdated(AuctionPriceUpdatedResponse auctionPriceUpdatedResponse);
-    Task BidCreated(BidResponse createdBid);
-    Task BidAccepted(BidResponse acceptedBid);
-    Task ErrorOccurred(ErrorResponse error);
+    Task BidCreated(BidResponse createdBid); // Triggerd only for clients who currently in a specific auction room
+    Task BidAccepted(BidResponse acceptedBid); // Triggerd only for clients who currently in a specific auction room
+    Task AuctionCreated(AuctionResponse createdAuction); // Global event
+    Task AuctionDeletedOrEnded(AuctionDeletedOrEndedResponse auctionDeletedOrEndedResponse);  // Global event
+    Task AuctionPriceUpdated(AuctionPriceUpdatedResponse auctionPriceUpdatedResponse);  // Global event
+    Task ErrorOccurred(ErrorResponse error); // Global event
 }
