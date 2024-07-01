@@ -55,7 +55,7 @@ public class AppHub : Hub<IAppHubClient>
         var auctionGroup = acceptedBid.AuctionId.ToString();
 
         await Clients.Group(auctionGroup).BidAccepted(acceptedBid); // Notify clients who currently in the page of this auction
-        await Clients.All.AuctionDeletedOrEnded(new() { AuctionId = acceptedBid.AuctionId });
+        await Clients.All.AuctionEnded(new() { AuctionId = acceptedBid.AuctionId });
     }
 
 
