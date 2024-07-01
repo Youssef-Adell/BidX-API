@@ -91,7 +91,7 @@ public class AuctionsController : ControllerBase
     /// <summary>
     /// Triggers "AuctionDeletedOrEnded" event on all connected SignalR clients
     /// </summary>
-    [HttpDelete("id")]
+    [HttpDelete("{id}")]
     [Authorize]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
