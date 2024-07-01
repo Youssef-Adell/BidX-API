@@ -1,6 +1,7 @@
 using AutoMapper;
 using BidUp.BusinessLogic.DTOs.BidDTOs;
 using BidUp.BusinessLogic.DTOs.CommonDTOs;
+using BidUp.BusinessLogic.DTOs.QueryParamsDTOs;
 using BidUp.BusinessLogic.Interfaces;
 using BidUp.DataAccess;
 using BidUp.DataAccess.Entites;
@@ -19,23 +20,35 @@ public class BiddingService : IBiddingService
         this.mapper = mapper;
     }
 
-    public async Task<AppResult<IEnumerable<BidResponse>>> GetAuctionBids(int auctionId)
+    public async Task<AppResult<Page<BidResponse>>> GetAuctionBids(int auctionId, BidsQueryParams queryParams)
     {
         var auctionExists = await appDbContext.Auctions
             .AnyAsync(a => a.Id == auctionId);
 
         if (!auctionExists)
-            return AppResult<IEnumerable<BidResponse>>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Auction not found."]);
+            return AppResult<Page<BidResponse>>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Auction not found."]);
 
-        var bids = await appDbContext.Bids
+        var auctionBids = appDbContext.Bids
             .Include(b => b.Bidder)
-            .Where(b => b.AuctionId == auctionId)
+            .Where(b => b.AuctionId == auctionId);
+
+        // Use the above query to get the total count of auction bids before applying the pagination
+        var totalAuctionBidsCount = await auctionBids.CountAsync();
+
+        var bids = await auctionBids
+            // Get the last bids first
+            .OrderByDescending(a => a.Id)
+            // Paginate
+            .Skip((queryParams.Page - 1) * queryParams.PageSize)
+            .Take(queryParams.PageSize)
             .AsNoTracking()
             .ToListAsync();
 
-        var response = mapper.Map<IEnumerable<Bid>, IEnumerable<BidResponse>>(bids);
+        var bidResponses = mapper.Map<IEnumerable<Bid>, IEnumerable<BidResponse>>(bids);
 
-        return AppResult<IEnumerable<BidResponse>>.Success(response);
+        var response = new Page<BidResponse>(bidResponses, queryParams.Page, queryParams.PageSize, totalAuctionBidsCount);
+
+        return AppResult<Page<BidResponse>>.Success(response);
     }
 
     public async Task<AppResult<BidResponse>> GetAcceptedBid(int auctionId)
