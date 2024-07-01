@@ -1,5 +1,6 @@
 using BidUp.BusinessLogic.DTOs.BidDTOs;
 using BidUp.BusinessLogic.DTOs.CommonDTOs;
+using BidUp.BusinessLogic.DTOs.QueryParamsDTOs;
 using BidUp.BusinessLogic.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -23,9 +24,9 @@ public class BidsController : ControllerBase
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<BidResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetAuctionBids(int auctionId)
+    public async Task<IActionResult> GetAuctionBids(int auctionId, [FromQuery] BidsQueryParams queryParams)
     {
-        var result = await biddingService.GetAuctionBids(auctionId);
+        var result = await biddingService.GetAuctionBids(auctionId, queryParams);
 
         if (!result.Succeeded)
             return NotFound(result.Error);

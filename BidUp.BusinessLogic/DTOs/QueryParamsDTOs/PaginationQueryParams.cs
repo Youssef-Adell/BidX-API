@@ -2,7 +2,7 @@ namespace BidUp.BusinessLogic.DTOs.QueryParamsDTOs;
 
 public class PaginationQueryParams
 {
-    private const int MaxPageSize = 30;
+    private const int MaxPageSize = 50;
     private int _page = 1;
     private int _pageSize = 5;
 
