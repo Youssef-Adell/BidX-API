@@ -54,6 +54,39 @@ public class AuctionsService : IAuctionsService
         return response;
     }
 
+    public async Task<AppResult<Page<AuctionResponse>>> GetUserAuctions(int userId, UserAuctionsQueryParams queryParams)
+    {
+        var userAuctionsQuery = appDbContext.Auctions
+            .Include(a => a.Product)
+            .Include(a => a.HighestBid)
+            .Where(a => a.AuctioneerId == userId);
+
+        // Use the above query to get the total count of user auctions before applying the pagination
+        var totalCount = await userAuctionsQuery.CountAsync();
+
+        if (totalCount == 0) // be this trick this method will execute only 2 queries at max.
+        {
+            var userExists = await appDbContext.Users.AnyAsync(a => a.Id == userId);
+            if (!userExists)
+                return AppResult<Page<AuctionResponse>>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["User not found."]);
+        }
+
+        var userAuctions = await userAuctionsQuery
+            // Get the newly added auctions first
+            .OrderByDescending(a => a.Id)
+            // Paginate
+            .Skip((queryParams.Page - 1) * queryParams.PageSize)
+            .Take(queryParams.PageSize)
+            .AsNoTracking()
+            .ToListAsync();
+
+        var auctionsResponses = mapper.Map<IEnumerable<Auction>, IEnumerable<AuctionResponse>>(userAuctions);
+
+        var response = new Page<AuctionResponse>(auctionsResponses, queryParams.Page, queryParams.PageSize, totalCount);
+
+        return AppResult<Page<AuctionResponse>>.Success(response);
+    }
+
     public async Task<AppResult<AuctionDetailsResponse>> GetAuction(int auctionId)
     {
         var auction = await appDbContext.Auctions
