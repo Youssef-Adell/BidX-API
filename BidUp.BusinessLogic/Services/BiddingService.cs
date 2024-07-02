@@ -22,20 +22,21 @@ public class BiddingService : IBiddingService
 
     public async Task<AppResult<Page<BidResponse>>> GetAuctionBids(int auctionId, BidsQueryParams queryParams)
     {
-        var auctionExists = await appDbContext.Auctions
-            .AnyAsync(a => a.Id == auctionId);
-
-        if (!auctionExists)
-            return AppResult<Page<BidResponse>>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Auction not found."]);
-
-        var auctionBids = appDbContext.Bids
+        var auctionBidsQuery = appDbContext.Bids
             .Include(b => b.Bidder)
             .Where(b => b.AuctionId == auctionId);
 
         // Use the above query to get the total count of auction bids before applying the pagination
-        var totalAuctionBidsCount = await auctionBids.CountAsync();
+        var totalAuctionBidsCount = await auctionBidsQuery.CountAsync();
 
-        var bids = await auctionBids
+        if (totalAuctionBidsCount == 0)
+        {
+            var auctionExists = await appDbContext.Auctions.AnyAsync(a => a.Id == auctionId);
+            if (!auctionExists)
+                return AppResult<Page<BidResponse>>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Auction not found."]);
+        }
+
+        var auctionBids = await auctionBidsQuery
             // Get the last bids first
             .OrderByDescending(a => a.Id)
             // Paginate
@@ -44,7 +45,7 @@ public class BiddingService : IBiddingService
             .AsNoTracking()
             .ToListAsync();
 
-        var bidResponses = mapper.Map<IEnumerable<Bid>, IEnumerable<BidResponse>>(bids);
+        var bidResponses = mapper.Map<IEnumerable<Bid>, IEnumerable<BidResponse>>(auctionBids);
 
         var response = new Page<BidResponse>(bidResponses, queryParams.Page, queryParams.PageSize, totalAuctionBidsCount);
 
