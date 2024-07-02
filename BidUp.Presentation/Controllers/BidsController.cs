@@ -22,7 +22,7 @@ public class BidsController : ControllerBase
 
 
     [HttpGet]
-    [ProducesResponseType(typeof(IEnumerable<BidResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Page<BidResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetAuctionBids(int auctionId, [FromQuery] BidsQueryParams queryParams)
     {
