@@ -59,6 +59,6 @@ public class UsersService : IUsersService
           .ExecuteUpdateAsync(setters => setters
               .SetProperty(u => u.ProfilePictureUrl, newProfilePictureUrl));
 
-        return AppResult<UpdatedProfilePictureResponse>.Success(new() { NewProfilePictureUrl = newProfilePictureUrl });
+        return AppResult<UpdatedProfilePictureResponse>.Success(new() { ProfilePictureUrl = newProfilePictureUrl });
     }
 }

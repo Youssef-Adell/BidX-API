@@ -75,8 +75,9 @@ public class UsersController : ControllerBase
 
 
     [HttpPut("current/profile")]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [Authorize]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> UpdateCurrentUserProfile(UserProfileUpdateRequest userProfileUpdateRequest)
     {
         var userId = int.Parse(User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value!);
@@ -88,6 +89,9 @@ public class UsersController : ControllerBase
 
     [HttpPut("current/profile/picture")]
     [Authorize]
+    [ProducesResponseType(typeof(UpdatedProfilePictureResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> UpdateCurrentUserProfilePicture([Required] IFormFile newProfilePicture)
     {
         var userId = int.Parse(User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value!);
