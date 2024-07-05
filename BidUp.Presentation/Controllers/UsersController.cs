@@ -1,6 +1,7 @@
 using BidUp.BusinessLogic.DTOs.AuctionDTOs;
 using BidUp.BusinessLogic.DTOs.CommonDTOs;
 using BidUp.BusinessLogic.DTOs.QueryParamsDTOs;
+using BidUp.BusinessLogic.DTOs.UserProfileDTOs;
 using BidUp.BusinessLogic.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -57,6 +58,8 @@ public class UsersController : ControllerBase
 
 
     [HttpGet("profile")]
+    [ProducesResponseType(typeof(UserProfileResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetUserProfile(int userId)
     {
         var result = await usersService.GetUserProfile(userId);
