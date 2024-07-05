@@ -37,4 +37,21 @@ public class UsersController : ControllerBase
         return Ok(result.Response);
     }
 
+
+    /// <summary>
+    /// Gets the auctions that the user has bid on
+    /// </summary>
+    [HttpGet("bidded-auctions")]
+    [ProducesResponseType(typeof(Page<AuctionUserHasBidOnResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetAuctionsUserHasBidOn(int userId, [FromQuery] AuctionsUserHasBidOnQueryParams queryParams)
+    {
+        var result = await auctionsService.GetAuctionsUserHasBidOn(userId, queryParams);
+
+        if (!result.Succeeded)
+            return NotFound(result.Error);
+
+        return Ok(result.Response);
+    }
+
 }
