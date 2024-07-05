@@ -1,14 +1,16 @@
+using System.Security.Claims;
 using BidUp.BusinessLogic.DTOs.AuctionDTOs;
 using BidUp.BusinessLogic.DTOs.CommonDTOs;
 using BidUp.BusinessLogic.DTOs.QueryParamsDTOs;
 using BidUp.BusinessLogic.DTOs.UserProfileDTOs;
 using BidUp.BusinessLogic.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BidUp.Presentation.Controllers;
 
 [ApiController]
-[Route("api/users/{userId}")]
+[Route("api/users")]
 [Produces("application/json")]
 [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
 public class UsersController : ControllerBase
@@ -26,7 +28,7 @@ public class UsersController : ControllerBase
     /// <summary>
     /// Gets the auctions created by the user
     /// </summary>
-    [HttpGet("created-auctions")]
+    [HttpGet("{userId}/created-auctions")]
     [ProducesResponseType(typeof(Page<AuctionResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetUserAuctions(int userId, [FromQuery] UserAuctionsQueryParams queryParams)
@@ -43,7 +45,7 @@ public class UsersController : ControllerBase
     /// <summary>
     /// Gets the auctions that the user has bid on
     /// </summary>
-    [HttpGet("bidded-auctions")]
+    [HttpGet("{userId}/bidded-auctions")]
     [ProducesResponseType(typeof(Page<AuctionUserHasBidOnResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetAuctionsUserHasBidOn(int userId, [FromQuery] AuctionsUserHasBidOnQueryParams queryParams)
@@ -57,7 +59,7 @@ public class UsersController : ControllerBase
     }
 
 
-    [HttpGet("profile")]
+    [HttpGet("{userId}/profile")]
     [ProducesResponseType(typeof(UserProfileResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetUserProfile(int userId)
@@ -68,6 +70,19 @@ public class UsersController : ControllerBase
             return NotFound(result.Error);
 
         return Ok(result.Response);
+    }
+
+
+    [HttpPut("current/profile")]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [Authorize]
+    public async Task<IActionResult> UpdateCurrentUserProfile(UserProfileUpdateRequest userProfileUpdateRequest)
+    {
+        var userId = int.Parse(User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value!);
+
+        await usersService.UpdateUserProfile(userId, userProfileUpdateRequest);
+
+        return NoContent();
     }
 
 }

@@ -2,8 +2,6 @@ using BidUp.BusinessLogic.DTOs.CommonDTOs;
 using BidUp.BusinessLogic.DTOs.UserProfileDTOs;
 using BidUp.BusinessLogic.Interfaces;
 using BidUp.DataAccess;
-using BidUp.DataAccess.Entites;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace BidUp.BusinessLogic.Services;
@@ -37,4 +35,12 @@ public class UsersService : IUsersService
         return AppResult<UserProfileResponse>.Success(userProfileResponse);
     }
 
+    public async Task UpdateUserProfile(int userId, UserProfileUpdateRequest userProfileUpdateRequest)
+    {
+        await appDbContext.Users
+                  .Where(u => u.Id == userId)
+                  .ExecuteUpdateAsync(setters => setters
+                      .SetProperty(u => u.FirstName, userProfileUpdateRequest.FirstName)
+                      .SetProperty(u => u.LastName, userProfileUpdateRequest.LastName));
+    }
 }
