@@ -152,6 +152,7 @@ builder.Services.AddScoped<ICategoriesService, CategoriesService>();
 builder.Services.AddScoped<ICloudService, CloudinaryCloudService>();
 builder.Services.AddScoped<IAuctionsService, AuctionsService>();
 builder.Services.AddScoped<IBiddingService, BiddingService>();
+builder.Services.AddScoped<IUsersService, UsersService>();
 
 
 var app = builder.Build();

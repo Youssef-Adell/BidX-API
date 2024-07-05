@@ -1,6 +1,7 @@
 using BidUp.BusinessLogic.DTOs.AuctionDTOs;
 using BidUp.BusinessLogic.DTOs.CommonDTOs;
 using BidUp.BusinessLogic.DTOs.QueryParamsDTOs;
+using BidUp.BusinessLogic.DTOs.UserProfileDTOs;
 using BidUp.BusinessLogic.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,11 +14,12 @@ namespace BidUp.Presentation.Controllers;
 public class UsersController : ControllerBase
 {
     private readonly IAuctionsService auctionsService;
+    private readonly IUsersService usersService;
 
-    public UsersController(IAuctionsService auctionsService)
+    public UsersController(IAuctionsService auctionsService, IUsersService usersService)
     {
         this.auctionsService = auctionsService;
-
+        this.usersService = usersService;
     }
 
 
@@ -47,6 +49,20 @@ public class UsersController : ControllerBase
     public async Task<IActionResult> GetAuctionsUserHasBidOn(int userId, [FromQuery] AuctionsUserHasBidOnQueryParams queryParams)
     {
         var result = await auctionsService.GetAuctionsUserHasBidOn(userId, queryParams);
+
+        if (!result.Succeeded)
+            return NotFound(result.Error);
+
+        return Ok(result.Response);
+    }
+
+
+    [HttpGet("profile")]
+    [ProducesResponseType(typeof(UserProfileResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetUserProfile(int userId)
+    {
+        var result = await usersService.GetUserProfile(userId);
 
         if (!result.Succeeded)
             return NotFound(result.Error);
