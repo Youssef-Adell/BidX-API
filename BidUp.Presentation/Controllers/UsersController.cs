@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using BidUp.BusinessLogic.DTOs.AuctionDTOs;
 using BidUp.BusinessLogic.DTOs.CommonDTOs;
@@ -83,6 +84,23 @@ public class UsersController : ControllerBase
         await usersService.UpdateUserProfile(userId, userProfileUpdateRequest);
 
         return NoContent();
+    }
+
+    [HttpPut("current/profile/picture")]
+    [Authorize]
+    public async Task<IActionResult> UpdateCurrentUserProfilePicture([Required] IFormFile newProfilePicture)
+    {
+        var userId = int.Parse(User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value!);
+
+        using (var newProfilePictureStream = newProfilePicture.OpenReadStream())
+        {
+            var result = await usersService.UpdateUserProfilePicture(userId, newProfilePictureStream);
+
+            if (!result.Succeeded)
+                return UnprocessableEntity(result.Error);
+
+            return Ok(result.Response);
+        }
     }
 
 }

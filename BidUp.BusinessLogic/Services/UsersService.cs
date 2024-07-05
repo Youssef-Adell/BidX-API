@@ -9,11 +9,12 @@ namespace BidUp.BusinessLogic.Services;
 public class UsersService : IUsersService
 {
     private readonly AppDbContext appDbContext;
+    private readonly ICloudService cloudService;
 
-    public UsersService(AppDbContext appDbContext)
+    public UsersService(AppDbContext appDbContext, ICloudService cloudService)
     {
         this.appDbContext = appDbContext;
-
+        this.cloudService = cloudService;
     }
 
 
@@ -42,5 +43,22 @@ public class UsersService : IUsersService
                   .ExecuteUpdateAsync(setters => setters
                       .SetProperty(u => u.FirstName, userProfileUpdateRequest.FirstName)
                       .SetProperty(u => u.LastName, userProfileUpdateRequest.LastName));
+    }
+
+    public async Task<AppResult<UpdatedProfilePictureResponse>> UpdateUserProfilePicture(int userId, Stream newProfilePicture)
+    {
+        var uploadResult = await cloudService.UploadThumbnail(newProfilePicture);
+
+        if (!uploadResult.Succeeded)
+            return AppResult<UpdatedProfilePictureResponse>.Failure(uploadResult.Error!.ErrorCode, uploadResult.Error.ErrorMessages);
+
+        var newProfilePictureUrl = uploadResult.Response!.FileUrl;
+
+        await appDbContext.Users
+          .Where(u => u.Id == userId)
+          .ExecuteUpdateAsync(setters => setters
+              .SetProperty(u => u.ProfilePictureUrl, newProfilePictureUrl));
+
+        return AppResult<UpdatedProfilePictureResponse>.Success(new() { NewProfilePictureUrl = newProfilePictureUrl });
     }
 }
