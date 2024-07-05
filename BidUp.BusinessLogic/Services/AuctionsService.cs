@@ -59,7 +59,8 @@ public class AuctionsService : IAuctionsService
         var userAuctionsQuery = appDbContext.Auctions
             .Include(a => a.Product)
             .Include(a => a.HighestBid)
-            .Where(a => a.AuctioneerId == userId);
+            .Where(a => (a.AuctioneerId == userId) &&
+                        (queryParams.ActiveOnly == false || a.EndTime > DateTime.UtcNow));
 
         // Use the above query to get the total count of user auctions before applying the pagination
         var totalCount = await userAuctionsQuery.CountAsync();
