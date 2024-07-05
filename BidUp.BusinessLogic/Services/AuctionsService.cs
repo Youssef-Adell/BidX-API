@@ -88,6 +88,52 @@ public class AuctionsService : IAuctionsService
         return AppResult<Page<AuctionResponse>>.Success(response);
     }
 
+    public async Task<AppResult<Page<AuctionUserHasBidOnResponse>>> GetAuctionsUserHasBidOn(int userId, AuctionsUserHasBidOnQueryParams queryParams)
+    {
+        // Build the query
+        IQueryable<Auction> auctionsUserHasBidOnQuery = appDbContext.Auctions
+            .Include(a => a.Product)
+            .Include(a => a.HighestBid);
+
+        if (queryParams.WonOnly)
+            auctionsUserHasBidOnQuery = auctionsUserHasBidOnQuery.Where(a => a.WinnerId == userId);
+        else
+            auctionsUserHasBidOnQuery = auctionsUserHasBidOnQuery.Where(a => a.Bids.Any(b => b.BidderId == userId) && (queryParams.ActiveOnly == false || a.EndTime > DateTime.UtcNow));
+
+        // Use the above query to get the total count of auctions user has bid on before applying the pagination
+        var totalCount = await auctionsUserHasBidOnQuery.CountAsync();
+
+        if (totalCount == 0)
+        {
+            var userExists = await appDbContext.Users.AnyAsync(a => a.Id == userId);
+            if (!userExists)
+                return AppResult<Page<AuctionUserHasBidOnResponse>>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["User not found."]);
+        }
+
+        var auctionsUserHasBidOn = await auctionsUserHasBidOnQuery
+            // Get the newly added auctions first
+            .OrderByDescending(a => a.Id)
+            // Paginate
+            .Skip((queryParams.Page - 1) * queryParams.PageSize)
+            .Take(queryParams.PageSize)
+            .AsNoTracking()
+            .ToListAsync();
+
+        var auctionsResponses = auctionsUserHasBidOn.Select(a => new AuctionUserHasBidOnResponse
+        {
+            Id = a.Id,
+            ProductName = a.Product.Name,
+            ThumbnailUrl = a.Product.ThumbnailUrl,
+            CurrentPrice = a.CurrentPrice,
+            EndTime = a.EndTime,
+            IsActive = a.IsActive,
+            IsUserWon = !a.IsActive ? a.WinnerId == userId : null
+        });
+
+        var response = new Page<AuctionUserHasBidOnResponse>(auctionsResponses, queryParams.Page, queryParams.PageSize, totalCount);
+        return AppResult<Page<AuctionUserHasBidOnResponse>>.Success(response);
+    }
+
     public async Task<AppResult<AuctionDetailsResponse>> GetAuction(int auctionId)
     {
         var auction = await appDbContext.Auctions

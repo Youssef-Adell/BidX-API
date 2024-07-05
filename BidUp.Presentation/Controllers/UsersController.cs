@@ -37,4 +37,16 @@ public class UsersController : ControllerBase
         return Ok(result.Response);
     }
 
+
+    [HttpGet("bidded-auctions")]
+    public async Task<IActionResult> GetAuctionsUserHasBidOn(int userId, [FromQuery] AuctionsUserHasBidOnQueryParams queryParams)
+    {
+        var result = await auctionsService.GetAuctionsUserHasBidOn(userId, queryParams);
+
+        if (!result.Succeeded)
+            return NotFound(result.Error);
+
+        return Ok(result.Response);
+    }
+
 }
