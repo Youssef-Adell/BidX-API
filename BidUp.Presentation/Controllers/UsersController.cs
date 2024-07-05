@@ -10,17 +10,21 @@ namespace BidUp.Presentation.Controllers;
 [Route("api/users/{userId}")]
 [Produces("application/json")]
 [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-public class UserController : ControllerBase
+public class UsersController : ControllerBase
 {
     private readonly IAuctionsService auctionsService;
 
-    public UserController(IAuctionsService auctionsService)
+    public UsersController(IAuctionsService auctionsService)
     {
         this.auctionsService = auctionsService;
 
     }
 
-    [HttpGet("auctions")]
+
+    /// <summary>
+    /// Gets the auctions created by the user
+    /// </summary>
+    [HttpGet("created-auctions")]
     [ProducesResponseType(typeof(Page<AuctionResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetUserAuctions(int userId, [FromQuery] UserAuctionsQueryParams queryParams)
