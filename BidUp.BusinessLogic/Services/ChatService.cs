@@ -1,6 +1,7 @@
 using AutoMapper;
 using BidUp.BusinessLogic.DTOs.ChatDTOs;
 using BidUp.BusinessLogic.DTOs.CommonDTOs;
+using BidUp.BusinessLogic.DTOs.QueryParamsDTOs;
 using BidUp.BusinessLogic.Interfaces;
 using BidUp.DataAccess;
 using BidUp.DataAccess.Entites;
@@ -13,12 +14,43 @@ public class ChatService : IChatService
     private readonly AppDbContext appDbContext;
     private readonly IMapper mapper;
 
-
     public ChatService(AppDbContext appDbContext, IMapper mapper)
     {
         this.appDbContext = appDbContext;
         this.mapper = mapper;
 
+    }
+
+
+    public async Task<Page<ChatDetailsResponse>> GetUserChats(int userId, ChatsQueryParams queryParams)
+    {
+        var userChatsQuery = appDbContext.Chats
+            .Include(c => c.Users)
+            .Include(c => c.Messages)
+            .Where(c => c.Users.Any(u => u.Id == userId) && c.Messages.Count() > 0)
+            .Select(c => new ChatDetailsResponse
+            {
+                Id = c.Id,
+                ParticipantId = c.Users.First(u => u.Id != userId).Id,
+                ParticipantName = $"{c.Users.First(u => u.Id != userId).FirstName}",
+                ParticipantProfilePictureUrl = c.Users.First(u => u.Id != userId).ProfilePictureUrl,
+                LastMessage = c.Messages.OrderBy(c => c.Id).Last().Content,
+                HasUnseenMessages = c.Messages.Any(m => m.SenderId != userId && !m.Seen)
+            });
+
+        var totalCount = await userChatsQuery.CountAsync();
+
+        var userChatsResponses = await userChatsQuery
+            // Get the new chats first
+            .OrderByDescending(c => c.Id)
+            // Paginate
+            .Skip((queryParams.Page - 1) * queryParams.PageSize)
+            .Take(queryParams.PageSize)
+            .AsNoTracking()
+            .ToListAsync();
+
+        var response = new Page<ChatDetailsResponse>(userChatsResponses, queryParams.Page, queryParams.PageSize, totalCount);
+        return response;
     }
 
     public async Task<AppResult<ChatSummeryResponse>> IntiateChat(int senderId, int receiverId)

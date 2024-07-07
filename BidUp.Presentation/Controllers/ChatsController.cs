@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using BidUp.BusinessLogic.DTOs.QueryParamsDTOs;
 using BidUp.BusinessLogic.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -14,6 +15,17 @@ public class ChatsController : ControllerBase
     public ChatsController(IChatService chatService)
     {
         this.chatService = chatService;
+    }
+
+    [HttpGet]
+    [Authorize]
+    public async Task<IActionResult> GetCurrentUserChats([FromQuery] ChatsQueryParams queryParams)
+    {
+        var userId = int.Parse(User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value!);
+
+        var response = await chatService.GetUserChats(userId, queryParams);
+
+        return Ok(response);
     }
 
     [HttpPost("initiate/{receiverId}")]
