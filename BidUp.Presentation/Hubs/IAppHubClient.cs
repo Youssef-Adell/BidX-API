@@ -15,7 +15,8 @@ public interface IAppHubClient
     Task AuctionEnded(AuctionEndedResponse endedAuctionId);  // Triggerd for all connected clients
     Task AuctionPriceUpdated(AuctionPriceUpdatedResponse auctionIdWithNewPrice);  // Triggerd for all connected clients
 
-    Task MessageReceived(MessageResponse messageResponse);
+    Task MessageReceived(MessageResponse receivedMessage); // Triggerd for clients who currently in a specific chat room
+    Task MessagesSeen(); // Triggerd for the sender client who currently in a specific chat room
 
     Task ErrorOccurred(ErrorResponse error); // Triggerd for the caller client only if there is an error
 }

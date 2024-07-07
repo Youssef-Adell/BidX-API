@@ -2,6 +2,7 @@ using System.Security.Claims;
 using BidUp.BusinessLogic.DTOs.AuctionDTOs;
 using BidUp.BusinessLogic.DTOs.BidDTOs;
 using BidUp.BusinessLogic.DTOs.ChatDTOs;
+using BidUp.BusinessLogic.DTOs.CommonDTOs;
 using BidUp.BusinessLogic.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
@@ -89,7 +90,36 @@ public class AppHub : Hub<IAppHubClient>
         }
 
         var createdMessage = result.Response!;
+        var groupName = $"CHAT#{createdMessage.ChatId}";
 
-        await Clients.Users(createdMessage.SenderId.ToString(), createdMessage.ReceiverId.ToString()).MessageReceived(createdMessage);
+        await Clients.Group(groupName).MessageReceived(createdMessage);
     }
+
+    // The client must call this method when the chat page loaded to be able to receive messages updates in realtime
+    [Authorize]
+    public async Task JoinChatRoom(JoinChatRoomRequest joinChatRoomRequest)
+    {
+        var userId = int.Parse(Context.UserIdentifier!);
+
+        var result = await chatService.MarkReceivedMessagesAsSeen(userId, joinChatRoomRequest.ChatId);
+
+        if (!result.Succeeded)
+        {
+            await Clients.Caller.ErrorOccurred(result.Error!);
+            return;
+        }
+
+        var groupName = $"CHAT#{joinChatRoomRequest.ChatId}";
+
+        await Clients.Group(groupName).MessagesSeen(); // If the other user is currently in the chat page he will be notified that his messages seen
+        await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
+    }
+
+    // The client must call this method when the chat page loaded is about to be closed to stop receiving unnecessary messages updates
+    public async Task LeaveChatRoom(LeaveChatRoomRequest leaveChatRoomRequest)
+    {
+        var groupName = $"CHAT#{leaveChatRoomRequest.ChatId}";
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupName);
+    }
+
 }

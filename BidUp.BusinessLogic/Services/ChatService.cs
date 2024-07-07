@@ -43,7 +43,7 @@ public class ChatService : IChatService
             Id = chat.Id,
             ParticipantId = receiver.Id,
             ParticipantName = $"{receiver.FirstName} {receiver.LastName}",
-            ParticipantProfilePicture = receiver.ProfilePictureUrl,
+            ParticipantProfilePictureUrl = receiver.ProfilePictureUrl,
         };
 
         return AppResult<ChatSummeryResponse>.Success(response);
@@ -51,23 +51,17 @@ public class ChatService : IChatService
 
     public async Task<AppResult<MessageResponse>> SendMessage(int senderId, MessageRequest messageRequest)
     {
-        var chat = await appDbContext.UserChats
-            .GroupBy(uc => uc.ChatId)
-            .Select(g => new Chat
-            {
-                Id = g.Key,
-                Users = g.Select(uc => uc.User).ToList()!
-            })
-            .FirstOrDefaultAsync(g => g.Id == messageRequest.ChatId);
+        var chatExists = await appDbContext.Chats
+            .AnyAsync(c => c.Id == messageRequest.ChatId && c.Users.Any(u => u.Id == senderId));
 
-        if (chat is null || !chat.Users.Any(u => u.Id == senderId))
+        if (!chatExists)
             return AppResult<MessageResponse>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Chat not found."]);
 
 
         // Save the message to the db
         var message = new Message
         {
-            ChatId = chat.Id,
+            ChatId = messageRequest.ChatId,
             SenderId = senderId,
             Content = messageRequest.Message,
         };
@@ -79,13 +73,31 @@ public class ChatService : IChatService
         var response = new MessageResponse
         {
             Id = message.Id,
+            ChatId = message.ChatId,
+            SenderId = message.SenderId,
             Content = message.Content,
             SentAt = message.SentAt,
-            SenderId = message.SenderId,
-            ChatId = message.ChatId,
-            ReceiverId = chat.Users.First(u => u.Id != senderId).Id,
+            Seen = message.Seen
         };
         return AppResult<MessageResponse>.Success(response);
+    }
+
+    public async Task<AppResult> MarkReceivedMessagesAsSeen(int userId, int chatId)
+    {
+        var chatExists = await appDbContext.Chats
+            .AnyAsync(c => c.Id == chatId && c.Users.Any(u => u.Id == userId));
+
+        if (!chatExists)
+            return AppResult.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Chat not found."]);
+
+        var unseenMessages = await appDbContext.Messages
+            .Where(m => m.ChatId == chatId && m.SenderId != userId && !m.Seen)
+            .ToListAsync();
+
+        unseenMessages.ForEach(m => m.Seen = true);
+
+        await appDbContext.SaveChangesAsync();
+        return AppResult.Success();
     }
 
 
