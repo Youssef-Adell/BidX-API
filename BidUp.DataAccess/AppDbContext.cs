@@ -16,6 +16,9 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<int>, int>
     public required DbSet<Category> Categories { get; set; }
     public required DbSet<Auction> Auctions { get; set; }
     public required DbSet<Bid> Bids { get; set; }
+    public required DbSet<Chat> Chats { get; set; }
+    public required DbSet<Message> Messages { get; set; }
+    public required DbSet<UserChat> UserChats { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -61,6 +64,11 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<int>, int>
             .HasMany(p => p.Images)
             .WithOne()
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<Chat>()
+            .HasMany(c => c.Users)
+            .WithMany(u => u.Chats)
+            .UsingEntity<UserChat>();
     }
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
