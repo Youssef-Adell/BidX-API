@@ -44,6 +44,7 @@ public class ChatService : IChatService
             ParticipantId = receiver.Id,
             ParticipantName = $"{receiver.FirstName} {receiver.LastName}",
             ParticipantProfilePictureUrl = receiver.ProfilePictureUrl,
+            IsParticipantOnline = receiver.IsOnline,
         };
 
         return AppResult<ChatSummeryResponse>.Success(response);
@@ -77,7 +78,8 @@ public class ChatService : IChatService
             SenderId = message.SenderId,
             Content = message.Content,
             SentAt = message.SentAt,
-            Seen = message.Seen
+            Seen = message.Seen,
+            ReceiverId = (await appDbContext.UserChats.FirstAsync(uc => uc.ChatId == messageRequest.ChatId && uc.UserId != senderId)).UserId,
         };
         return AppResult<MessageResponse>.Success(response);
     }
@@ -113,6 +115,17 @@ public class ChatService : IChatService
             .ToListAsync();
 
         return chatIdsToNotify;
+    }
+
+    public async Task<bool> HasUnseenMessages(int userId)
+    {
+        var hasUnseenMessages = await appDbContext.Messages
+            .AnyAsync(m => m.Chat!.Users.Any(u => u.Id == userId) && m.SenderId != userId && !m.Seen);
+
+        if (hasUnseenMessages)
+            return true;
+
+        return false;
     }
 
 

@@ -25,6 +25,11 @@ public class AppHub : Hub<IAppHubClient>
     {
         if (int.TryParse(Context.UserIdentifier, out int userId))
         {
+            var hasUnseenMessages = await chatService.HasUnseenMessages(userId);
+
+            if (hasUnseenMessages)
+                await Clients.Caller.MessageReceivedNotification();
+
             var chatIdsToNotify = await chatService.ChangeUserStatus(userId, isOnline: true);
 
             var groupNames = chatIdsToNotify.Select(chatId => $"CHAT#{chatId}");
@@ -47,6 +52,54 @@ public class AppHub : Hub<IAppHubClient>
         }
 
         await base.OnDisconnectedAsync(exception);
+    }
+
+
+    [Authorize]
+    public async Task SendMessage(MessageRequest messageRequest)
+    {
+        var userId = int.Parse(Context.UserIdentifier!);
+
+        var result = await chatService.SendMessage(userId, messageRequest);
+
+        if (!result.Succeeded)
+        {
+            await Clients.Caller.ErrorOccurred(result.Error!);
+            return;
+        }
+
+        var createdMessage = result.Response!;
+        var groupName = $"CHAT#{createdMessage.ChatId}";
+
+        await Clients.Group(groupName).MessageReceived(createdMessage);
+        await Clients.User($"{createdMessage.ReceiverId}").MessageReceivedNotification();
+    }
+
+    // The client must call this method when the chat page loaded to be able to receive messages updates in realtime
+    [Authorize]
+    public async Task JoinChatRoom(JoinChatRoomRequest joinChatRoomRequest)
+    {
+        var userId = int.Parse(Context.UserIdentifier!);
+
+        var result = await chatService.MarkReceivedMessagesAsSeen(userId, joinChatRoomRequest.ChatId);
+
+        if (!result.Succeeded)
+        {
+            await Clients.Caller.ErrorOccurred(result.Error!);
+            return;
+        }
+
+        var groupName = $"CHAT#{joinChatRoomRequest.ChatId}";
+
+        await Clients.Group(groupName).MessagesSeen(); // If the other user is currently in the chat page he will be notified that his messages seen
+        await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
+    }
+
+    // The client must call this method when the chat page loaded is about to be closed to stop receiving unnecessary messages updates
+    public async Task LeaveChatRoom(LeaveChatRoomRequest leaveChatRoomRequest)
+    {
+        var groupName = $"CHAT#{leaveChatRoomRequest.ChatId}";
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupName);
     }
 
 
@@ -101,52 +154,4 @@ public class AppHub : Hub<IAppHubClient>
     {
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, leaveAuctionRoomRequest.AuctionId.ToString());
     }
-
-
-    [Authorize]
-    public async Task SendMessage(MessageRequest messageRequest)
-    {
-        var userId = int.Parse(Context.UserIdentifier!);
-
-        var result = await chatService.SendMessage(userId, messageRequest);
-
-        if (!result.Succeeded)
-        {
-            await Clients.Caller.ErrorOccurred(result.Error!);
-            return;
-        }
-
-        var createdMessage = result.Response!;
-        var groupName = $"CHAT#{createdMessage.ChatId}";
-
-        await Clients.Group(groupName).MessageReceived(createdMessage);
-    }
-
-    // The client must call this method when the chat page loaded to be able to receive messages updates in realtime
-    [Authorize]
-    public async Task JoinChatRoom(JoinChatRoomRequest joinChatRoomRequest)
-    {
-        var userId = int.Parse(Context.UserIdentifier!);
-
-        var result = await chatService.MarkReceivedMessagesAsSeen(userId, joinChatRoomRequest.ChatId);
-
-        if (!result.Succeeded)
-        {
-            await Clients.Caller.ErrorOccurred(result.Error!);
-            return;
-        }
-
-        var groupName = $"CHAT#{joinChatRoomRequest.ChatId}";
-
-        await Clients.Group(groupName).MessagesSeen(); // If the other user is currently in the chat page he will be notified that his messages seen
-        await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
-    }
-
-    // The client must call this method when the chat page loaded is about to be closed to stop receiving unnecessary messages updates
-    public async Task LeaveChatRoom(LeaveChatRoomRequest leaveChatRoomRequest)
-    {
-        var groupName = $"CHAT#{leaveChatRoomRequest.ChatId}";
-        await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupName);
-    }
-
 }

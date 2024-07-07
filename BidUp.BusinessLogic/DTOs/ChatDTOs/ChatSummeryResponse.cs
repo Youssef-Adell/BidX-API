@@ -6,4 +6,5 @@ public class ChatSummeryResponse
     public int ParticipantId { get; init; }
     public required string ParticipantName { get; init; }
     public string? ParticipantProfilePictureUrl { get; init; }
+    public bool IsParticipantOnline { get; init; }
 }

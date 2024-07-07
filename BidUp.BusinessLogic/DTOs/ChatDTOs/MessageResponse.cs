@@ -10,4 +10,7 @@ public class MessageResponse
     public required string Content { get; init; }
     public DateTime SentAt { get; init; }
     public bool Seen { get; init; }
+
+    [JsonIgnore] // We need it only in the hun to be able send a notifiction to the receiver but the frontend does not need it
+    public int ReceiverId { get; init; }
 }
