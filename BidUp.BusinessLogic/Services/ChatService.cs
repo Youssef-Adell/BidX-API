@@ -100,6 +100,21 @@ public class ChatService : IChatService
         return AppResult.Success();
     }
 
+    public async Task<IEnumerable<int>> ChangeUserStatus(int userId, bool isOnline)
+    {
+        await appDbContext.Users
+            .Where(u => u.Id == userId)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(u => u.IsOnline, isOnline));
+
+        var chatIdsToNotify = await appDbContext.UserChats
+            .Where(uc => uc.UserId == userId)
+            .Select(uc => uc.ChatId)
+            .ToListAsync();
+
+        return chatIdsToNotify;
+    }
+
 
     private async Task<Chat> CreateChat(int senderId, int receiverId)
     {

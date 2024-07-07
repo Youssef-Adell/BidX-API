@@ -21,6 +21,34 @@ public class AppHub : Hub<IAppHubClient>
         this.chatService = chatService;
     }
 
+    public override async Task OnConnectedAsync()
+    {
+        if (int.TryParse(Context.UserIdentifier, out int userId))
+        {
+            var chatIdsToNotify = await chatService.ChangeUserStatus(userId, isOnline: true);
+
+            var groupNames = chatIdsToNotify.Select(chatId => $"CHAT#{chatId}");
+
+            await Clients.Groups(groupNames).UserStatusChanged(new() { UserId = userId, IsOnline = true });
+        }
+
+        await base.OnConnectedAsync();
+    }
+
+    public override async Task OnDisconnectedAsync(Exception? exception)
+    {
+        if (int.TryParse(Context.UserIdentifier, out int userId))
+        {
+            var chatIdsToNotify = await chatService.ChangeUserStatus(userId, isOnline: false);
+
+            var groupNames = chatIdsToNotify.Select(chatId => $"CHAT#{chatId}");
+
+            await Clients.Groups(groupNames).UserStatusChanged(new() { UserId = userId, IsOnline = false });
+        }
+
+        await base.OnDisconnectedAsync(exception);
+    }
+
 
     [Authorize]
     public async Task BidUp(BidRequest bidRequest)
@@ -73,7 +101,6 @@ public class AppHub : Hub<IAppHubClient>
     {
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, leaveAuctionRoomRequest.AuctionId.ToString());
     }
-
 
 
     [Authorize]

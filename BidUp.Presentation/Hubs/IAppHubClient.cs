@@ -17,6 +17,7 @@ public interface IAppHubClient
 
     Task MessageReceived(MessageResponse receivedMessage); // Triggerd for clients who currently in a specific chat room
     Task MessagesSeen(); // Triggerd for the sender client who currently in a specific chat room
+    Task UserStatusChanged(UserStatusResponse userStatus); // Triggerd for any client currently in a chat page with this user 
 
     Task ErrorOccurred(ErrorResponse error); // Triggerd for the caller client only if there is an error
 }
