@@ -2,6 +2,7 @@ using AutoMapper;
 using BidUp.BusinessLogic.DTOs.AuctionDTOs;
 using BidUp.BusinessLogic.DTOs.BidDTOs;
 using BidUp.BusinessLogic.DTOs.CategoryDTOs;
+using BidUp.BusinessLogic.DTOs.ChatDTOs;
 using BidUp.BusinessLogic.DTOs.CityDTOs;
 using BidUp.DataAccess.Entites;
 
@@ -52,6 +53,9 @@ public class MappingProfile : Profile
                 Name = string.Concat(s.Bidder!.FirstName, " ", s.Bidder.LastName),
                 ProfilePictureUrl = s.Bidder.ProfilePictureUrl
             }));
+
+        //---Messages---
+        CreateMap<Message, MessageResponse>();
 
     }
 }

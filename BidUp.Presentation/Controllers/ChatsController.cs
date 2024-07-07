@@ -28,6 +28,18 @@ public class ChatsController : ControllerBase
         return Ok(response);
     }
 
+
+    [HttpGet("{chatId}/messages")]
+    [Authorize]
+    public async Task<IActionResult> GetChatMessages(int chatId, [FromQuery] MessagesQueryParams queryParams)
+    {
+        var userId = int.Parse(User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value!);
+
+        var response = await chatService.GetChatMessages(userId, chatId, queryParams);
+
+        return Ok(response);
+    }
+
     [HttpPost("initiate/{receiverId}")]
     [Authorize]
     public async Task<IActionResult> IntiateChat(int receiverId)

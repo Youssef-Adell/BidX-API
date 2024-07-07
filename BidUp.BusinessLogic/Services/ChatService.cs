@@ -39,6 +39,8 @@ public class ChatService : IChatService
             });
 
         var totalCount = await userChatsQuery.CountAsync();
+        if (totalCount == 0)
+            return new Page<ChatDetailsResponse>([], queryParams.Page, 0, totalCount);
 
         var userChatsResponses = await userChatsQuery
             // Get the new chats first
@@ -49,8 +51,30 @@ public class ChatService : IChatService
             .AsNoTracking()
             .ToListAsync();
 
-        var response = new Page<ChatDetailsResponse>(userChatsResponses, queryParams.Page, queryParams.PageSize, totalCount);
-        return response;
+        return new Page<ChatDetailsResponse>(userChatsResponses, queryParams.Page, queryParams.PageSize, totalCount);
+    }
+
+    public async Task<Page<MessageResponse>> GetChatMessages(int userId, int chatId, MessagesQueryParams queryParams)
+    {
+        var chatMessagesQuery = appDbContext.Messages
+            .Where(m => m.ChatId == chatId && m.Chat!.Users.Any(u => u.Id == userId));
+
+        var totalCount = await chatMessagesQuery.CountAsync();
+        if (totalCount == 0)
+            return new Page<MessageResponse>([], queryParams.Page, 0, totalCount);
+
+        var chatMessages = await chatMessagesQuery
+            // Get the new messages first
+            .OrderByDescending(c => c.Id)
+            // Paginate
+            .Skip((queryParams.Page - 1) * queryParams.PageSize)
+            .Take(queryParams.PageSize)
+            .AsNoTracking()
+            .ToListAsync();
+
+        var messagesResponses = mapper.Map<IEnumerable<Message>, IEnumerable<MessageResponse>>(chatMessages);
+
+        return new Page<MessageResponse>(messagesResponses, queryParams.Page, queryParams.PageSize, totalCount);
     }
 
     public async Task<AppResult<ChatSummeryResponse>> IntiateChat(int senderId, int receiverId)
