@@ -40,7 +40,7 @@ public class ChatService : IChatService
 
         var totalCount = await userChatsQuery.CountAsync();
         if (totalCount == 0)
-            return new Page<ChatDetailsResponse>([], queryParams.Page, 0, totalCount);
+            return new Page<ChatDetailsResponse>([], queryParams.Page, queryParams.PageSize, totalCount);
 
         var userChatsResponses = await userChatsQuery
             // Get the new chats first
@@ -61,7 +61,7 @@ public class ChatService : IChatService
 
         var totalCount = await chatMessagesQuery.CountAsync();
         if (totalCount == 0)
-            return new Page<MessageResponse>([], queryParams.Page, 0, totalCount);
+            return new Page<MessageResponse>([], queryParams.Page, queryParams.PageSize, totalCount);
 
         var chatMessages = await chatMessagesQuery
             // Get the new messages first
