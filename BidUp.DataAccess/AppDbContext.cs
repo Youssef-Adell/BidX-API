@@ -17,8 +17,9 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<int>, int>
     public required DbSet<Auction> Auctions { get; set; }
     public required DbSet<Bid> Bids { get; set; }
     public required DbSet<Chat> Chats { get; set; }
-    public required DbSet<Message> Messages { get; set; }
     public required DbSet<UserChat> UserChats { get; set; }
+    public required DbSet<Message> Messages { get; set; }
+    public required DbSet<Review> Reviews { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -69,6 +70,17 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<int>, int>
             .HasMany(c => c.Users)
             .WithMany(u => u.Chats)
             .UsingEntity<UserChat>();
+
+        builder.Entity<User>()
+            .HasMany(u => u.ReviewsWritten)
+            .WithOne(r => r.Reviewer)
+            .HasForeignKey(r => r.ReviewerId)
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.Entity<User>()
+            .HasMany(u => u.ReviewsReceived)
+            .WithOne(r => r.Reviewee)
+            .HasForeignKey(r => r.RevieweeId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)

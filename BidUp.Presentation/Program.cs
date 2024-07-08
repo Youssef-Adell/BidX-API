@@ -154,6 +154,7 @@ builder.Services.AddScoped<IAuctionsService, AuctionsService>();
 builder.Services.AddScoped<IBiddingService, BiddingService>();
 builder.Services.AddScoped<IUsersService, UsersService>();
 builder.Services.AddScoped<IChatService, ChatService>();
+builder.Services.AddScoped<IReviewsService, ReviewsService>();
 
 
 var app = builder.Build();

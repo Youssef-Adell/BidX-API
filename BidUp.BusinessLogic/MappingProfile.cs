@@ -4,6 +4,7 @@ using BidUp.BusinessLogic.DTOs.BidDTOs;
 using BidUp.BusinessLogic.DTOs.CategoryDTOs;
 using BidUp.BusinessLogic.DTOs.ChatDTOs;
 using BidUp.BusinessLogic.DTOs.CityDTOs;
+using BidUp.BusinessLogic.DTOs.ReviewsDTOs;
 using BidUp.DataAccess.Entites;
 
 namespace BidUp.BusinessLogic;
@@ -57,5 +58,7 @@ public class MappingProfile : Profile
         //---Messages---
         CreateMap<Message, MessageResponse>();
 
+        //---Reviews---
+        CreateMap<Review, ReviewResponse>();
     }
 }
