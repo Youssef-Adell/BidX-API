@@ -20,6 +20,19 @@ public class ReviewsService : IReviewsService
     }
 
 
+    public async Task<AppResult<ReviewResponse>> GetReview(int reviewerId, int revieweeId)
+    {
+        var review = await appDbContext.Reviews
+            .FirstOrDefaultAsync(r => r.ReviewerId == reviewerId && r.RevieweeId == revieweeId);
+
+        if (review is null)
+            return AppResult<ReviewResponse>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["You have not reviewed this user before."]);
+
+        var response = mapper.Map<Review, ReviewResponse>(review);
+
+        return AppResult<ReviewResponse>.Success(response);
+    }
+
     public async Task<AppResult<ReviewResponse>> AddReview(int reviewerId, int revieweeId, AddReviewRequest addReviewRequest)
     {
         var revieweeExists = await appDbContext.Users

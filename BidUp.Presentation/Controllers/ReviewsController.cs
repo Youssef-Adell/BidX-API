@@ -21,6 +21,24 @@ public class ReviewsController : ControllerBase
     }
 
 
+    [HttpGet("my-review")]
+    [Authorize]
+    [ProducesResponseType(typeof(ReviewResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetCurrentUserReview(int userId)
+    {
+        var reviewerId = int.Parse(User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value!);
+
+        var result = await reviewsService.GetReview(reviewerId, userId);
+
+        if (!result.Succeeded)
+            return NotFound(result.Error);
+
+        return Ok(result.Response);
+    }
+
+
     [HttpPost]
     [Authorize]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -47,6 +65,6 @@ public class ReviewsController : ControllerBase
                 return StatusCode(StatusCodes.Status409Conflict, result.Error);
         }
 
-        return NoContent(); // To be changed to Created after adding get review endpoint
+        return CreatedAtAction(nameof(GetCurrentUserReview), new { userId = userId }, result.Response); // To be changed to Created after adding get review endpoint
     }
 }
