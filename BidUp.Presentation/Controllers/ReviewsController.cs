@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using BidUp.BusinessLogic.DTOs.CommonDTOs;
+using BidUp.BusinessLogic.DTOs.QueryParamsDTOs;
 using BidUp.BusinessLogic.DTOs.ReviewsDTOs;
 using BidUp.BusinessLogic.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -18,6 +19,21 @@ public class ReviewsController : ControllerBase
     public ReviewsController(IReviewsService reviewsService)
     {
         this.reviewsService = reviewsService;
+    }
+
+
+    [HttpGet]
+    [ProducesResponseType(typeof(Page<ReviewResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+
+    public async Task<IActionResult> GetUserReviewsReceived(int userId, [FromQuery] ReviewsQueryParams queryParams)
+    {
+        var result = await reviewsService.GetUserReviewsReceived(userId, queryParams);
+
+        if (!result.Succeeded)
+            return NotFound(result.Error);
+
+        return Ok(result.Response);
     }
 
 

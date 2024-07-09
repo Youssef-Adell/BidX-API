@@ -1,5 +1,6 @@
 using AutoMapper;
 using BidUp.BusinessLogic.DTOs.CommonDTOs;
+using BidUp.BusinessLogic.DTOs.QueryParamsDTOs;
 using BidUp.BusinessLogic.DTOs.ReviewsDTOs;
 using BidUp.BusinessLogic.Interfaces;
 using BidUp.DataAccess;
@@ -20,8 +21,49 @@ public class ReviewsService : IReviewsService
     }
 
 
+    public async Task<AppResult<Page<ReviewResponse>>> GetUserReviewsReceived(int revieweeId, ReviewsQueryParams queryParams)
+    {
+        var revieweeExists = await appDbContext.Users
+            .AnyAsync(u => u.Id == revieweeId);
+
+        if (!revieweeExists)
+            return AppResult<Page<ReviewResponse>>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["User not found."]);
+
+
+        var userReviewsQuery = appDbContext.Reviews
+            .Where(r => r.RevieweeId == revieweeId);
+
+
+        var totalCount = await userReviewsQuery.CountAsync();
+
+        if (totalCount == 0)
+            return AppResult<Page<ReviewResponse>>.Success(new Page<ReviewResponse>([], queryParams.Page, queryParams.PageSize, totalCount));
+
+
+        var userReviews = await userReviewsQuery
+            // Get the newly added reviews first
+            .OrderByDescending(a => a.Id)
+            // Paginate
+            .Skip((queryParams.Page - 1) * queryParams.PageSize)
+            .Take(queryParams.PageSize)
+            .AsNoTracking()
+            .ToListAsync();
+
+        var reviewsResponses = mapper.Map<IEnumerable<Review>, IEnumerable<ReviewResponse>>(userReviews);
+        var response = new Page<ReviewResponse>(reviewsResponses, queryParams.Page, queryParams.PageSize, totalCount);
+
+        return AppResult<Page<ReviewResponse>>.Success(response);
+    }
+
     public async Task<AppResult<ReviewResponse>> GetReview(int reviewerId, int revieweeId)
     {
+        var revieweeExists = await appDbContext.Users
+            .AnyAsync(u => u.Id == revieweeId);
+
+        if (!revieweeExists)
+            return AppResult<ReviewResponse>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["User not found."]);
+
+
         var review = await appDbContext.Reviews
             .FirstOrDefaultAsync(r => r.ReviewerId == reviewerId && r.RevieweeId == revieweeId);
 
@@ -29,7 +71,6 @@ public class ReviewsService : IReviewsService
             return AppResult<ReviewResponse>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["You have not reviewed this user before."]);
 
         var response = mapper.Map<Review, ReviewResponse>(review);
-
         return AppResult<ReviewResponse>.Success(response);
     }
 
