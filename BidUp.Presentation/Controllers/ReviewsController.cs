@@ -25,7 +25,6 @@ public class ReviewsController : ControllerBase
     [HttpGet]
     [ProducesResponseType(typeof(Page<ReviewResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
-
     public async Task<IActionResult> GetUserReviewsReceived(int userId, [FromQuery] ReviewsQueryParams queryParams)
     {
         var result = await reviewsService.GetUserReviewsReceived(userId, queryParams);
@@ -39,7 +38,7 @@ public class ReviewsController : ControllerBase
 
     [HttpGet("my-review")]
     [Authorize]
-    [ProducesResponseType(typeof(ReviewResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(MyReviewResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetCurrentUserReview(int userId)
@@ -57,7 +56,7 @@ public class ReviewsController : ControllerBase
 
     [HttpPost]
     [Authorize]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(MyReviewResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
@@ -81,6 +80,6 @@ public class ReviewsController : ControllerBase
                 return StatusCode(StatusCodes.Status409Conflict, result.Error);
         }
 
-        return CreatedAtAction(nameof(GetCurrentUserReview), new { userId = userId }, result.Response); // To be changed to Created after adding get review endpoint
+        return CreatedAtAction(nameof(GetCurrentUserReview), new { userId = userId }, result.Response);
     }
 }

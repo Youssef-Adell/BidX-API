@@ -7,6 +7,6 @@ namespace BidUp.BusinessLogic.Interfaces;
 public interface IReviewsService
 {
     Task<AppResult<Page<ReviewResponse>>> GetUserReviewsReceived(int revieweeId, ReviewsQueryParams queryParams);
-    Task<AppResult<ReviewResponse>> GetReview(int reviewerId, int revieweeId);
-    Task<AppResult<ReviewResponse>> AddReview(int reviewerId, int revieweeId, AddReviewRequest addReviewRequest);
+    Task<AppResult<MyReviewResponse>> GetReview(int reviewerId, int revieweeId);
+    Task<AppResult<MyReviewResponse>> AddReview(int reviewerId, int revieweeId, AddReviewRequest addReviewRequest);
 }

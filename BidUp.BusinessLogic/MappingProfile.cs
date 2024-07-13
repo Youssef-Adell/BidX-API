@@ -59,6 +59,6 @@ public class MappingProfile : Profile
         CreateMap<Message, MessageResponse>();
 
         //---Reviews---
-        CreateMap<Review, ReviewResponse>();
+        CreateMap<Review, MyReviewResponse>();
     }
 }
