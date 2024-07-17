@@ -24,7 +24,8 @@ public class UsersService : IUsersService
         .Select(u => new UserProfileResponse
         {
             Id = u.Id,
-            Name = $"{u.FirstName} {u.LastName}",
+            FirstName = u.FirstName,
+            LastName = u.LastName,
             ProfilePictureUrl = u.ProfilePictureUrl,
         })
         .AsNoTracking()
