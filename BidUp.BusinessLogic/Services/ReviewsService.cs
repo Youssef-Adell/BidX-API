@@ -144,4 +144,21 @@ public class ReviewsService : IReviewsService
         return AppResult.Success();
     }
 
+    public async Task<AppResult> DeleteReview(int reviewerId, int revieweeId)
+    {
+        var noOfRowsAffected = await appDbContext.Reviews
+            .Where(r => r.RevieweeId == revieweeId && r.ReviewerId == reviewerId)
+            .ExecuteDeleteAsync();
+
+        if (noOfRowsAffected <= 0)
+        {
+            var revieweeExists = await appDbContext.Users.AnyAsync(u => u.Id == revieweeId);
+            if (!revieweeExists)
+                return AppResult.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["User not found."]);
+
+            return AppResult.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["You have not reviewed this user before."]);
+        }
+
+        return AppResult.Success();
+    }
 }

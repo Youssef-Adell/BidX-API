@@ -87,7 +87,7 @@ public class ReviewsController : ControllerBase
 
     [HttpPut("my-review")]
     [Authorize]
-    [ProducesResponseType(typeof(MyReviewResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> UpdateMyReview(int userId, UpdateReviewRequest updateReviewRequest)
@@ -95,6 +95,24 @@ public class ReviewsController : ControllerBase
         var reviewerId = int.Parse(User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value!);
 
         var result = await reviewsService.UpdateReview(reviewerId, userId, updateReviewRequest);
+
+        if (!result.Succeeded)
+            return NotFound(result.Error);
+
+        return NoContent();
+    }
+
+
+    [HttpDelete("my-review")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> DeleteMyReview(int userId)
+    {
+        var reviewerId = int.Parse(User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value!);
+
+        var result = await reviewsService.DeleteReview(reviewerId, userId);
 
         if (!result.Succeeded)
             return NotFound(result.Error);
