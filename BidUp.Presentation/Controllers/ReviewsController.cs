@@ -22,30 +22,13 @@ public class ReviewsController : ControllerBase
     }
 
 
+
     [HttpGet]
     [ProducesResponseType(typeof(Page<ReviewResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetUserReviewsReceived(int userId, [FromQuery] ReviewsQueryParams queryParams)
     {
         var result = await reviewsService.GetUserReviewsReceived(userId, queryParams);
-
-        if (!result.Succeeded)
-            return NotFound(result.Error);
-
-        return Ok(result.Response);
-    }
-
-
-    [HttpGet("my-review")]
-    [Authorize]
-    [ProducesResponseType(typeof(MyReviewResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> GetCurrentUserReview(int userId)
-    {
-        var reviewerId = int.Parse(User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value!);
-
-        var result = await reviewsService.GetReview(reviewerId, userId);
 
         if (!result.Succeeded)
             return NotFound(result.Error);
@@ -80,6 +63,43 @@ public class ReviewsController : ControllerBase
                 return StatusCode(StatusCodes.Status409Conflict, result.Error);
         }
 
-        return CreatedAtAction(nameof(GetCurrentUserReview), new { userId = userId }, result.Response);
+        return CreatedAtAction(nameof(GetMyReview), new { userId = userId }, result.Response);
     }
+
+
+    [HttpGet("my-review")]
+    [Authorize]
+    [ProducesResponseType(typeof(MyReviewResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetMyReview(int userId)
+    {
+        var reviewerId = int.Parse(User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value!);
+
+        var result = await reviewsService.GetReview(reviewerId, userId);
+
+        if (!result.Succeeded)
+            return NotFound(result.Error);
+
+        return Ok(result.Response);
+    }
+
+
+    [HttpPut("my-review")]
+    [Authorize]
+    [ProducesResponseType(typeof(MyReviewResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> UpdateMyReview(int userId, UpdateReviewRequest updateReviewRequest)
+    {
+        var reviewerId = int.Parse(User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value!);
+
+        var result = await reviewsService.UpdateReview(reviewerId, userId, updateReviewRequest);
+
+        if (!result.Succeeded)
+            return NotFound(result.Error);
+
+        return NoContent();
+    }
+
 }

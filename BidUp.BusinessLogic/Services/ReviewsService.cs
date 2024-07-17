@@ -124,4 +124,24 @@ public class ReviewsService : IReviewsService
         return AppResult<MyReviewResponse>.Success(response);
     }
 
+    public async Task<AppResult> UpdateReview(int reviewerId, int revieweeId, UpdateReviewRequest updateReviewRequest)
+    {
+        var noOfRowsAffected = await appDbContext.Reviews
+            .Where(r => r.RevieweeId == revieweeId && r.ReviewerId == reviewerId)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(r => r.Rating, updateReviewRequest.Rating)
+                .SetProperty(r => r.Comment, updateReviewRequest.Comment));
+
+        if (noOfRowsAffected <= 0)
+        {
+            var revieweeExists = await appDbContext.Users.AnyAsync(u => u.Id == revieweeId);
+            if (!revieweeExists)
+                return AppResult.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["User not found."]);
+
+            return AppResult.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["You have not reviewed this user before."]);
+        }
+
+        return AppResult.Success();
+    }
+
 }
