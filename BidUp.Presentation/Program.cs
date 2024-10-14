@@ -141,8 +141,8 @@ builder.Services.AddAutoMapper(typeof(MappingProfile));
 builder.Services.AddSignalR();
 builder.Services.AddCors(options =>
 {
-    // To be able to test signalR hub using JS client
-    options.AddPolicy(name: "DevelopmentPolicy", policy => policy.WithOrigins("http://127.0.0.1:5500").AllowAnyMethod().AllowAnyHeader().AllowCredentials());
+    var frontendOrigin = builder.Configuration["Cors:FrontendOrigin"]!;
+    options.AddPolicy(name: "AllowFrontendDomain", policy => policy.WithOrigins(frontendOrigin).AllowAnyMethod().AllowAnyHeader().AllowCredentials());
 });
 
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -192,7 +192,7 @@ app.UseHttpsRedirection();
 
 if (app.Environment.IsDevelopment())
 {
-    app.UseCors("DevelopmentPolicy");
+    app.UseCors("AllowFrontendDomain");
 }
 
 app.UseAuthentication(); // Validates the Token came at the request's Authorization header then decode it and assign it to HttpContext.User

@@ -15,6 +15,8 @@ public class AuthController : ControllerBase
 {
     private readonly IAuthService authService;
     private readonly LinkGenerator linkGenerator;
+    const string NameOfRefreshTokenCookie = "RefreshToken";
+
     public AuthController(IAuthService authService, LinkGenerator linkGenerator)
     {
         this.authService = authService;
@@ -24,17 +26,14 @@ public class AuthController : ControllerBase
     [HttpPost("register")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<IActionResult> Register([FromForm] RegisterRequest registerRequest, IFormFile? profilePicture)
+    public async Task<IActionResult> Register(RegisterRequest registerRequest)
     {
-        using (var profilePictureStream = profilePicture?.OpenReadStream())
-        {
-            var result = await authService.Register(registerRequest, profilePictureStream);
+        var result = await authService.Register(registerRequest);
 
-            if (!result.Succeeded)
-                return UnprocessableEntity(result.Error);
+        if (!result.Succeeded)
+            return UnprocessableEntity(result.Error);
 
-            return await SendConfirmationEmail(new() { Email = registerRequest.Email });
-        }
+        return await SendConfirmationEmail(new() { Email = registerRequest.Email });
     }
 
     /*
@@ -68,6 +67,8 @@ public class AuthController : ControllerBase
         return Content(html, "text/html");
     }
 
+
+    /// <response code="200">If the request is sent from a browser client the refreshToken will be set as an http-only cookie and won't be returned in the response body.</response>
     [HttpPost("login")]
     [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
@@ -78,20 +79,35 @@ public class AuthController : ControllerBase
         if (!result.Succeeded)
             return Unauthorized(result.Error);
 
-        return Ok(result.Response);
+        if (IsBrowserClient())
+        {
+            SetRefreshTokenCookie(result.Response!.RefreshToken);
+            return Ok(new { result.Response!.User, result.Response.AccessToken }); // RefreshToken won't returned in the payload
+        }
+        else
+            return Ok(result.Response);
     }
 
+    /// <summary>Browser Clients don't have to send the request body, the server will extract the refresh token from the cookies instead.</summary>
+    /// <response code="200">If the request is sent from a browser client the refreshToken will be set as an http-only cookie and won't be returned in the response body.</response>
     [HttpPost("refresh")]
     [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> RefreshToken(RefreshRequest refreshRequest)
+    public async Task<IActionResult> RefreshToken(RefreshRequest? refreshRequest)
     {
-        var result = await authService.Refresh(refreshRequest.RefreshToken);
+        var refreshToken = IsBrowserClient() ? Request.Cookies[NameOfRefreshTokenCookie] : refreshRequest?.RefreshToken;
 
+        var result = await authService.Refresh(refreshToken);
         if (!result.Succeeded)
             return Unauthorized(result.Error);
 
-        return Ok(result.Response);
+        if (IsBrowserClient())
+        {
+            SetRefreshTokenCookie(result.Response!.RefreshToken);
+            return Ok(new { result.Response!.User, result.Response.AccessToken }); // RefreshToken won't returned in the payload
+        }
+        else
+            return Ok(result.Response);
     }
 
     /*
@@ -148,16 +164,72 @@ public class AuthController : ControllerBase
         return NoContent();
     }
 
-    [HttpPost("revoke-refresh-token")]
+    [HttpPost("Logout")]
     [Authorize]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> RevokeRefreshToken()
+    public async Task<IActionResult> Logout()
     {
         var userId = int.Parse(User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value!);
 
         await authService.RevokeRefreshToken(userId);
 
+        DeleteRefreshTokenCookie(); // in case of the client is a web client otherwise it has no effect
+
         return NoContent();
+    }
+
+
+    // Determines if the current request from a browser client or not
+    [NonAction]
+    private bool IsBrowserClient()
+    {
+        var userAgent = Request.Headers.UserAgent.ToString().ToLower();
+
+        return userAgent.Contains("mozilla") ||        // Matches most modern browsers
+                userAgent.Contains("chrome") ||        // Google Chrome
+                userAgent.Contains("safari") ||        // Safari (exclude Chrome here)
+                userAgent.Contains("edge") ||          // Microsoft Edge
+                userAgent.Contains("firefox") ||       // Mozilla Firefox
+                userAgent.Contains("opera") ||         // Opera browser
+                userAgent.Contains("msie") ||          // Internet Explorer (older)
+                userAgent.Contains("trident");         // Internet Explorer (newer)
+    }
+
+    // Sets the refresh token as an HTTP-only cookie with CHIPS
+    [NonAction]
+    private void SetRefreshTokenCookie(string refreshToken)
+    {
+        var cookieOptions = new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = true,               // Ensures HTTPS is used
+            SameSite = SameSiteMode.None, // Allows cross-site requests
+            Path = "/",
+            Expires = DateTime.UtcNow.AddMonths(1),
+            IsEssential = true,          // Important for non-tracking cookies
+        };
+
+        // Add Partitioned attribute for CHIPS (https://developers.google.com/privacy-sandbox/cookies/chips)
+        cookieOptions.Extensions.Add("Partitioned");
+
+        Response.Cookies.Append(NameOfRefreshTokenCookie, refreshToken, cookieOptions);
+    }
+
+    [NonAction]
+    private void DeleteRefreshTokenCookie()
+    {
+        var cookieOptions = new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = true,
+            SameSite = SameSiteMode.None,
+            Path = "/",
+            Expires = DateTime.UtcNow.AddDays(7),
+            IsEssential = true,
+        };
+        cookieOptions.Extensions.Add("Partitioned");
+
+        Response.Cookies.Delete(NameOfRefreshTokenCookie, cookieOptions);
     }
 }

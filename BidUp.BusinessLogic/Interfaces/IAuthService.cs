@@ -5,11 +5,11 @@ namespace BidUp.BusinessLogic.Interfaces;
 
 public interface IAuthService
 {
-    Task<AppResult> Register(RegisterRequest registerRequest, Stream? ProfilePicture, string userRole = "User");
+    Task<AppResult> Register(RegisterRequest registerRequest, string userRole = "User");
     Task SendConfirmationEmail(string email, string urlOfConfirmationEndpoint);
     Task<bool> ConfirmEmail(string userId, string token);
     Task<AppResult<LoginResponse>> Login(LoginRequest loginRequest);
-    Task<AppResult<LoginResponse>> Refresh(string refreshToken);
+    Task<AppResult<LoginResponse>> Refresh(string? refreshToken);
     Task SendPasswordResetEmail(string email, string urlOfPasswordResetPage);
     Task<AppResult> ResetPassword(ResetPasswordRequest resetPasswordRequest);
     Task<AppResult> ChangePassword(int userId, ChangePasswordRequest changePasswordRequest);

@@ -17,18 +17,16 @@ public class AuthService : IAuthService
 {
     private readonly UserManager<User> userManager;
     private readonly IEmailService emailService;
-    private readonly ICloudService cloudService;
     private readonly IConfiguration configuration;
 
-    public AuthService(UserManager<User> userManager, IEmailService emailService, ICloudService cloudService, IConfiguration configuration)
+    public AuthService(UserManager<User> userManager, IEmailService emailService, IConfiguration configuration)
     {
         this.userManager = userManager;
         this.emailService = emailService;
-        this.cloudService = cloudService;
         this.configuration = configuration;
     }
 
-    public async Task<AppResult> Register(RegisterRequest registerRequest, Stream? profilePicture, string userRole)
+    public async Task<AppResult> Register(RegisterRequest registerRequest, string userRole)
     {
         var user = new User()
         {
@@ -38,18 +36,7 @@ public class AuthService : IAuthService
             Email = registerRequest.Email.Trim()
         };
 
-        if (profilePicture is not null)
-        {
-            var uploadResult = await cloudService.UploadThumbnail(profilePicture);
-
-            if (!uploadResult.Succeeded)
-                return AppResult.Failure(uploadResult.Error!.ErrorCode, uploadResult.Error.ErrorMessages);
-
-            user.ProfilePictureUrl = uploadResult.Response!.FileUrl;
-        }
-
         var creationResult = await userManager.CreateAsync(user, registerRequest.Password.Trim());
-
         if (!creationResult.Succeeded)
         {
             var errorMessages = creationResult.Errors.Select(error => error.Description);
@@ -116,46 +103,46 @@ public class AuthService : IAuthService
 
 
         var roles = await userManager.GetRolesAsync(user);
-        var (accessToken, expiresIn) = CreateAccessToken(user, roles);
-        var refreshToken = await CreateRefreshToken(user);
 
         var loginResponse = new LoginResponse
         {
-            UserId = user.Id,
-            FirstName = user.FirstName,
-            LastName = user.LastName,
-            Email = user.Email!,
-            ProfilePictureUrl = user.ProfilePictureUrl,
-            Role = roles.First(),
-            AccessToken = accessToken,
-            ExpiresIn = expiresIn,
-            RefreshToken = refreshToken
+            User = new UserInfo
+            {
+                Id = user.Id,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Email = user.Email!,
+                ProfilePictureUrl = user.ProfilePictureUrl,
+                Role = roles.First(),
+            },
+            AccessToken = CreateAccessToken(user, roles),
+            RefreshToken = await CreateRefreshToken(user)
         };
 
         return AppResult<LoginResponse>.Success(loginResponse);
     }
 
-    public async Task<AppResult<LoginResponse>> Refresh(string refreshToken)
+    public async Task<AppResult<LoginResponse>> Refresh(string? refreshToken)
     {
         var user = userManager.Users.SingleOrDefault(user => user.RefreshToken == refreshToken && user.RefreshToken != null);
         if (user is null)
             return AppResult<LoginResponse>.Failure(ErrorCode.AUTH_INVALID_REFRESH_TOKEN, ["Invalid refresh token."]);
 
         var roles = await userManager.GetRolesAsync(user);
-        var (accessToken, expiresIn) = CreateAccessToken(user, roles);
-        var newRefreshToken = await CreateRefreshToken(user);
 
         var loginResponse = new LoginResponse
         {
-            UserId = user.Id,
-            FirstName = user.FirstName,
-            LastName = user.LastName,
-            Email = user.Email!,
-            ProfilePictureUrl = user.ProfilePictureUrl,
-            Role = roles.First(),
-            AccessToken = accessToken,
-            ExpiresIn = expiresIn,
-            RefreshToken = newRefreshToken
+            User = new UserInfo
+            {
+                Id = user.Id,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Email = user.Email!,
+                ProfilePictureUrl = user.ProfilePictureUrl,
+                Role = roles.First(),
+            },
+            AccessToken = CreateAccessToken(user, roles),
+            RefreshToken = await CreateRefreshToken(user)
         };
 
         return AppResult<LoginResponse>.Success(loginResponse);
@@ -250,7 +237,7 @@ public class AuthService : IAuthService
         return refreshToken;
     }
 
-    private (string token, double expiresIn) CreateAccessToken(User user, IEnumerable<string> roles)
+    private string CreateAccessToken(User user, IEnumerable<string> roles)
     {
         var jwtToken = new JwtSecurityToken(
             claims: GetClaims(user, roles),
@@ -259,9 +246,8 @@ public class AuthService : IAuthService
         );
 
         var token = new JwtSecurityTokenHandler().WriteToken(jwtToken);
-        var expiresIn = Convert.ToDouble(configuration["JwtSettings:AccessTokenExpirationTimeInMinutes"]);
 
-        return (token, expiresIn);
+        return token;
     }
 
     private List<Claim> GetClaims(User user, IEnumerable<string> roles)
