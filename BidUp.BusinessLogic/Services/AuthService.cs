@@ -17,18 +17,16 @@ public class AuthService : IAuthService
 {
     private readonly UserManager<User> userManager;
     private readonly IEmailService emailService;
-    private readonly ICloudService cloudService;
     private readonly IConfiguration configuration;
 
-    public AuthService(UserManager<User> userManager, IEmailService emailService, ICloudService cloudService, IConfiguration configuration)
+    public AuthService(UserManager<User> userManager, IEmailService emailService, IConfiguration configuration)
     {
         this.userManager = userManager;
         this.emailService = emailService;
-        this.cloudService = cloudService;
         this.configuration = configuration;
     }
 
-    public async Task<AppResult> Register(RegisterRequest registerRequest, Stream? profilePicture, string userRole)
+    public async Task<AppResult> Register(RegisterRequest registerRequest, string userRole)
     {
         var user = new User()
         {
@@ -38,18 +36,7 @@ public class AuthService : IAuthService
             Email = registerRequest.Email.Trim()
         };
 
-        if (profilePicture is not null)
-        {
-            var uploadResult = await cloudService.UploadThumbnail(profilePicture);
-
-            if (!uploadResult.Succeeded)
-                return AppResult.Failure(uploadResult.Error!.ErrorCode, uploadResult.Error.ErrorMessages);
-
-            user.ProfilePictureUrl = uploadResult.Response!.FileUrl;
-        }
-
         var creationResult = await userManager.CreateAsync(user, registerRequest.Password.Trim());
-
         if (!creationResult.Succeeded)
         {
             var errorMessages = creationResult.Errors.Select(error => error.Description);
