@@ -138,7 +138,7 @@ builder.Services.AddAuthentication(options =>
 Log.Logger = new LoggerConfiguration().ReadFrom.Configuration(builder.Configuration).CreateLogger();
 
 builder.Services.AddAutoMapper(typeof(MappingProfile));
-builder.Services.AddSignalR();
+builder.Services.AddSignalR(options => options.KeepAliveInterval = TimeSpan.FromSeconds(5));
 builder.Services.AddCors(options =>
 {
     var frontendOrigin = builder.Configuration["Cors:FrontendOrigin"]!;
