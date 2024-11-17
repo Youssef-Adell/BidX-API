@@ -174,7 +174,8 @@ public class AuthController : ControllerBase
 
         await authService.RevokeRefreshToken(userId);
 
-        DeleteRefreshTokenCookie(); // in case of the client is a web client otherwise it has no effect
+        if (IsBrowserClient())
+            DeleteRefreshTokenCookie();
 
         return NoContent();
     }
