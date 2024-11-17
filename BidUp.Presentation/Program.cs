@@ -190,10 +190,7 @@ app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseCors("AllowFrontendDomain");
-}
+app.UseCors("AllowFrontendDomain");
 
 app.UseAuthentication(); // Validates the Token came at the request's Authorization header then decode it and assign it to HttpContext.User
 
