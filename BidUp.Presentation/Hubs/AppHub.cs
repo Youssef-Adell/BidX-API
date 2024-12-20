@@ -140,7 +140,7 @@ public class AppHub : Hub<IAppHubClient>
         var auctionGroup = acceptedBid.AuctionId.ToString();
 
         await Clients.Group(auctionGroup).BidAccepted(acceptedBid); // Notify clients who currently in the page of this auction
-        await Clients.Group("FEED").AuctionEnded(new() { AuctionId = acceptedBid.AuctionId });
+        await Clients.Group("FEED").AuctionEnded(new() { AuctionId = acceptedBid.AuctionId, FinalPrice = acceptedBid.Amount });
     }
 
     // The client must call this method when the auction page loads to be able to receive bidding updates in realtime
