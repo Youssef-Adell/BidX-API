@@ -6,4 +6,7 @@ public class AuctionEndedResponse
 {
     [Required]
     public int AuctionId { get; init; }
+
+    [Required]
+    public decimal FinalPrice { get; init; }
 }
