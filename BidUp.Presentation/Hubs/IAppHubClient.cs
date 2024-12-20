@@ -10,10 +10,10 @@ public interface IAppHubClient
     Task BidCreated(BidResponse createdBid); // Triggerd only for clients who currently in a specific auction room
     Task BidAccepted(BidResponse acceptedBid); // Triggerd only for clients who currently in a specific auction room
 
-    Task AuctionCreated(AuctionResponse createdAuction); // Triggerd for all connected clients
-    Task AuctionDeleted(AuctionDeletedResponse deletedAuctionId);  // Triggerd for all connected clients
-    Task AuctionEnded(AuctionEndedResponse endedAuctionId);  // Triggerd for all connected clients
-    Task AuctionPriceUpdated(AuctionPriceUpdatedResponse auctionIdWithNewPrice);  // Triggerd for all connected clients
+    Task AuctionCreated(AuctionResponse createdAuction); // Triggerd for clients who currently in the Feed room
+    Task AuctionDeleted(AuctionDeletedResponse deletedAuctionId);  // Triggerd for for clients who currently in the Feed room
+    Task AuctionEnded(AuctionEndedResponse endedAuctionId);  // Triggerd for clients who currently in the Feed room
+    Task AuctionPriceUpdated(AuctionPriceUpdatedResponse auctionIdWithNewPrice);  // Triggerd for clients who currently in the Feed room
 
     Task MessageReceived(MessageResponse receivedMessage); // Triggerd for sender & receiver who currently in a specific chat room
     Task MessagesSeen(); // Triggerd for the sender client who currently in a specific chat room

@@ -120,7 +120,7 @@ public class AppHub : Hub<IAppHubClient>
         var auctionGroup = createdBid.AuctionId.ToString();
 
         await Clients.Group(auctionGroup).BidCreated(createdBid); // Notify clients who currently in the page of this auction
-        await Clients.All.AuctionPriceUpdated(new() { AuctionId = createdBid.AuctionId, NewPrice = createdBid.Amount });
+        await Clients.Group("FEED").AuctionPriceUpdated(new() { AuctionId = createdBid.AuctionId, NewPrice = createdBid.Amount });
     }
 
     [Authorize]
@@ -140,7 +140,7 @@ public class AppHub : Hub<IAppHubClient>
         var auctionGroup = acceptedBid.AuctionId.ToString();
 
         await Clients.Group(auctionGroup).BidAccepted(acceptedBid); // Notify clients who currently in the page of this auction
-        await Clients.All.AuctionEnded(new() { AuctionId = acceptedBid.AuctionId, FinalPrice = acceptedBid.Amount });
+        await Clients.Group("FEED").AuctionEnded(new() { AuctionId = acceptedBid.AuctionId });
     }
 
     // The client must call this method when the auction page loads to be able to receive bidding updates in realtime
@@ -153,5 +153,18 @@ public class AppHub : Hub<IAppHubClient>
     public async Task LeaveAuctionRoom(LeaveAuctionRoomRequest leaveAuctionRoomRequest)
     {
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, leaveAuctionRoomRequest.AuctionId.ToString());
+    }
+
+
+    // The client must call this method when the auctions feed page loads to be able to receive feed updates in realtime
+    public async Task JoinFeedRoom()
+    {
+        await Groups.AddToGroupAsync(Context.ConnectionId, "FEED");
+    }
+
+    // The client must call this method when the auctions feed page is about to be closed to stop receiving unnecessary feed updates
+    public async Task LeaveFeedRoom()
+    {
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, "FEED");
     }
 }
