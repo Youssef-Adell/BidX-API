@@ -12,7 +12,7 @@ public interface IAppHubClient
 
     Task AuctionCreated(AuctionResponse createdAuction); // Triggerd for clients who currently in the Feed room
     Task AuctionDeleted(AuctionDeletedResponse deletedAuctionId);  // Triggerd for for clients who currently in the Feed room
-    Task AuctionEnded(AuctionEndedResponse endedAuctionId);  // Triggerd for clients who currently in the Feed room
+    Task AuctionEnded(AuctionEndedResponse endedAuction);  // Triggerd for clients who currently in the Feed room
     Task AuctionPriceUpdated(AuctionPriceUpdatedResponse auctionIdWithNewPrice);  // Triggerd for clients who currently in the Feed room
 
     Task MessageReceived(MessageResponse receivedMessage); // Triggerd for sender & receiver who currently in a specific chat room
