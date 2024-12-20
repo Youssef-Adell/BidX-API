@@ -53,7 +53,7 @@ public class AuctionsController : ControllerBase
 
 
     /// <summary>
-    /// Triggers "AuctionCreated" event on all connected SignalR clients
+    /// Triggers "AuctionCreated" event for clients who currently in the Feed room
     /// </summary>
     [HttpPost]
     [Authorize]
@@ -73,7 +73,7 @@ public class AuctionsController : ControllerBase
             if (!result.Succeeded)
                 return UnprocessableEntity(result.Error);
 
-            await hubContext.Clients.All.AuctionCreated(result.Response!); // Notify all the connected clients
+            await hubContext.Clients.Group("FEED").AuctionCreated(result.Response!);
 
             var createdAuction = (await auctionsService.GetAuction(result.Response!.Id)).Response!;
 
@@ -89,7 +89,7 @@ public class AuctionsController : ControllerBase
 
 
     /// <summary>
-    /// Triggers "AuctionDeletedOrEnded" event on all connected SignalR clients
+    /// Triggers "AuctionDeleted" event for clients who currently in the Feed room
     /// </summary>
     [HttpDelete("{id}")]
     [Authorize]
@@ -105,7 +105,7 @@ public class AuctionsController : ControllerBase
         if (!result.Succeeded)
             return NotFound(result.Error);
 
-        await hubContext.Clients.All.AuctionDeleted(new() { AuctionId = id }); // Notify all the connected clients
+        await hubContext.Clients.Group("FEED").AuctionDeleted(new() { AuctionId = id });
 
         return NoContent();
     }
