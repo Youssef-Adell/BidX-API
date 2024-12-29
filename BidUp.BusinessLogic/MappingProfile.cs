@@ -28,6 +28,7 @@ public class MappingProfile : Profile
 
         CreateMap<Auction, AuctionResponse>()
             .ForMember(d => d.ProductName, o => o.MapFrom(s => s.Product.Name))
+            .ForMember(d => d.ProductCondition, o => o.MapFrom(s => s.Product.Condition))
             .ForMember(d => d.ThumbnailUrl, o => o.MapFrom(s => s.Product.ThumbnailUrl));
 
 
