@@ -92,13 +92,13 @@ public class UsersController : ControllerBase
     [ProducesResponseType(typeof(UpdatedProfilePictureResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status422UnprocessableEntity)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> UpdateCurrentUserProfilePicture([Required] IFormFile newProfilePicture)
+    public async Task<IActionResult> UpdateCurrentUserProfilePicture([Required] IFormFile profilePicture)
     {
         var userId = int.Parse(User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value!);
 
-        using (var newProfilePictureStream = newProfilePicture.OpenReadStream())
+        using (var profilePictureStream = profilePicture.OpenReadStream())
         {
-            var result = await usersService.UpdateUserProfilePicture(userId, newProfilePictureStream);
+            var result = await usersService.UpdateUserProfilePicture(userId, profilePictureStream);
 
             if (!result.Succeeded)
                 return UnprocessableEntity(result.Error);
