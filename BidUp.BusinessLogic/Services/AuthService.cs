@@ -142,7 +142,7 @@ public class AuthService : IAuthService
                 Role = roles.First(),
             },
             AccessToken = CreateAccessToken(user, roles),
-            RefreshToken = await CreateRefreshToken(user)
+            RefreshToken = refreshToken!
         };
 
         return AppResult<LoginResponse>.Success(loginResponse);
