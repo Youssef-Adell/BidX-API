@@ -42,7 +42,8 @@ public class MappingProfile : Profile
             {
                 Id = s.AuctioneerId,
                 Name = string.Concat(s.Auctioneer!.FirstName, " ", s.Auctioneer.LastName),
-                ProfilePictureUrl = s.Auctioneer.ProfilePictureUrl
+                ProfilePictureUrl = s.Auctioneer.ProfilePictureUrl,
+                TotalRating = s.Auctioneer.TotalRating
             }))
             .ForMember(d => d.Images, o => o.MapFrom(s => s.Product.Images.Select(i => i.Url)));
 
@@ -53,7 +54,8 @@ public class MappingProfile : Profile
             {
                 Id = s.Bidder!.Id,
                 Name = string.Concat(s.Bidder!.FirstName, " ", s.Bidder.LastName),
-                ProfilePictureUrl = s.Bidder.ProfilePictureUrl
+                ProfilePictureUrl = s.Bidder.ProfilePictureUrl,
+                TotalRating = s.Bidder.TotalRating
             }));
 
         //---Messages---

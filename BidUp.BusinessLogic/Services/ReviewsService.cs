@@ -37,7 +37,8 @@ public class ReviewsService : IReviewsService
                 {
                     Id = r.ReviewerId,
                     Name = $"{r.Reviewer!.FirstName} {r.Reviewer.LastName}",
-                    ProfilePictureUrl = r.Reviewer.ProfilePictureUrl
+                    ProfilePictureUrl = r.Reviewer.ProfilePictureUrl,
+                    TotalRating = r.Reviewer.TotalRating
                 }
             });
 
@@ -117,6 +118,7 @@ public class ReviewsService : IReviewsService
 
         appDbContext.Reviews.Add(review);
         await appDbContext.SaveChangesAsync();
+        await UpdateRevieweeTotalRating(revieweeId);
 
         var response = mapper.Map<Review, MyReviewResponse>(review);
         return AppResult<MyReviewResponse>.Success(response);
@@ -140,6 +142,8 @@ public class ReviewsService : IReviewsService
             return AppResult.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["You have not reviewed this user before."]);
         }
 
+        await UpdateRevieweeTotalRating(revieweeId);
+
         return AppResult.Success();
     }
 
@@ -158,6 +162,22 @@ public class ReviewsService : IReviewsService
             return AppResult.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["You have not reviewed this user before."]);
         }
 
+        await UpdateRevieweeTotalRating(revieweeId);
+
         return AppResult.Success();
+    }
+
+    private async Task UpdateRevieweeTotalRating(int revieweeId)
+    {
+
+        var averageRating = await appDbContext.Reviews
+            .Where(r => r.RevieweeId == revieweeId)
+            .AverageAsync(r => (decimal?)r.Rating) ?? 0;
+
+
+        await appDbContext.Users
+            .Where(u => u.Id == revieweeId)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(u => u.TotalRating, averageRating));
     }
 }
