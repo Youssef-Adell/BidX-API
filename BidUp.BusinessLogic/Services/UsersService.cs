@@ -47,20 +47,20 @@ public class UsersService : IUsersService
                       .SetProperty(u => u.LastName, userProfileUpdateRequest.LastName));
     }
 
-    public async Task<AppResult<UpdatedProfilePictureResponse>> UpdateUserProfilePicture(int userId, Stream newProfilePicture)
+    public async Task<AppResult<UpdatedProfilePictureResponse>> UpdateUserProfilePicture(int userId, Stream profilePicture)
     {
-        var uploadResult = await cloudService.UploadThumbnail(newProfilePicture);
+        var uploadResult = await cloudService.UploadThumbnail(profilePicture);
 
         if (!uploadResult.Succeeded)
             return AppResult<UpdatedProfilePictureResponse>.Failure(uploadResult.Error!.ErrorCode, uploadResult.Error.ErrorMessages);
 
-        var newProfilePictureUrl = uploadResult.Response!.FileUrl;
+        var profilePictureUrl = uploadResult.Response!.FileUrl;
 
         await appDbContext.Users
           .Where(u => u.Id == userId)
           .ExecuteUpdateAsync(setters => setters
-              .SetProperty(u => u.ProfilePictureUrl, newProfilePictureUrl));
+              .SetProperty(u => u.ProfilePictureUrl, profilePictureUrl));
 
-        return AppResult<UpdatedProfilePictureResponse>.Success(new() { ProfilePictureUrl = newProfilePictureUrl });
+        return AppResult<UpdatedProfilePictureResponse>.Success(new() { ProfilePictureUrl = profilePictureUrl });
     }
 }
