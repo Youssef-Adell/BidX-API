@@ -81,6 +81,10 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<int>, int>
             .WithOne(r => r.Reviewee)
             .HasForeignKey(r => r.RevieweeId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<Review>()
+            .Property(r => r.Rating)
+            .HasPrecision(2, 1); // 2 total digits at max includes 1 digit at right of the decimal point (ex: 3.5)
     }
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)

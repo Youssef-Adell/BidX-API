@@ -4,6 +4,7 @@ using BidUp.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BidUp.DataAccess.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20241229235809_Change type of Rating property to decimal in Review entity")]
+    partial class ChangetypeofRatingpropertytodecimalinReviewentity
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -71,7 +74,7 @@ namespace BidUp.DataAccess.Migrations
 
                     b.HasIndex("WinnerId");
 
-                    b.ToTable("Auction", (string)null);
+                    b.ToTable("Auction");
                 });
 
             modelBuilder.Entity("BidUp.DataAccess.Entites.Bid", b =>
@@ -100,7 +103,7 @@ namespace BidUp.DataAccess.Migrations
 
                     b.HasIndex("BidderId");
 
-                    b.ToTable("Bid", (string)null);
+                    b.ToTable("Bid");
                 });
 
             modelBuilder.Entity("BidUp.DataAccess.Entites.Category", b =>
@@ -124,7 +127,7 @@ namespace BidUp.DataAccess.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Category", (string)null);
+                    b.ToTable("Category");
                 });
 
             modelBuilder.Entity("BidUp.DataAccess.Entites.Chat", b =>
@@ -137,7 +140,7 @@ namespace BidUp.DataAccess.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Chat", (string)null);
+                    b.ToTable("Chat");
                 });
 
             modelBuilder.Entity("BidUp.DataAccess.Entites.City", b =>
@@ -154,7 +157,7 @@ namespace BidUp.DataAccess.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("City", (string)null);
+                    b.ToTable("City");
                 });
 
             modelBuilder.Entity("BidUp.DataAccess.Entites.Message", b =>
@@ -187,7 +190,7 @@ namespace BidUp.DataAccess.Migrations
 
                     b.HasIndex("SenderId");
 
-                    b.ToTable("Message", (string)null);
+                    b.ToTable("Message");
                 });
 
             modelBuilder.Entity("BidUp.DataAccess.Entites.Product", b =>
@@ -221,7 +224,7 @@ namespace BidUp.DataAccess.Migrations
                     b.HasIndex("AuctionId")
                         .IsUnique();
 
-                    b.ToTable("Product", (string)null);
+                    b.ToTable("Product");
                 });
 
             modelBuilder.Entity("BidUp.DataAccess.Entites.ProductImage", b =>
@@ -241,7 +244,7 @@ namespace BidUp.DataAccess.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.ToTable("ProductImage", (string)null);
+                    b.ToTable("ProductImage");
                 });
 
             modelBuilder.Entity("BidUp.DataAccess.Entites.Review", b =>
@@ -277,7 +280,7 @@ namespace BidUp.DataAccess.Migrations
 
                     b.HasIndex("ReviewerId");
 
-                    b.ToTable("Review", (string)null);
+                    b.ToTable("Review");
                 });
 
             modelBuilder.Entity("BidUp.DataAccess.Entites.User", b =>
@@ -380,7 +383,7 @@ namespace BidUp.DataAccess.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("UserChat", (string)null);
+                    b.ToTable("UserChat");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole<int>", b =>

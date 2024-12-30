@@ -3,8 +3,10 @@ namespace BidUp.BusinessLogic.DTOs.ReviewsDTOs;
 public class ReviewResponse
 {
     public int Id { get; init; }
-    public int Rating { get; init; }
+    public decimal Rating { get; init; }
     public string? Comment { get; init; }
+    public DateTime CreatedAt { get; init; }
+    public DateTime UpdatedAt { get; init; }
     public required Reviewer Reviewer { get; init; }
 }
 

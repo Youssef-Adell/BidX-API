@@ -31,6 +31,8 @@ public class ReviewsService : IReviewsService
                 Id = r.Id,
                 Rating = r.Rating,
                 Comment = r.Comment,
+                CreatedAt = r.CreatedAt,
+                UpdatedAt = r.UpdatedAt,
                 Reviewer = new Reviewer
                 {
                     Id = r.ReviewerId,
@@ -126,7 +128,8 @@ public class ReviewsService : IReviewsService
             .Where(r => r.RevieweeId == revieweeId && r.ReviewerId == reviewerId)
             .ExecuteUpdateAsync(setters => setters
                 .SetProperty(r => r.Rating, updateReviewRequest.Rating)
-                .SetProperty(r => r.Comment, updateReviewRequest.Comment));
+                .SetProperty(r => r.Comment, updateReviewRequest.Comment)
+                .SetProperty(r => r.UpdatedAt, DateTime.UtcNow));
 
         if (noOfRowsAffected <= 0)
         {
