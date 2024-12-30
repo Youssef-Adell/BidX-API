@@ -5,6 +5,7 @@ using System.Text;
 using BidUp.BusinessLogic.DTOs.AuthDTOs;
 using BidUp.BusinessLogic.DTOs.CommonDTOs;
 using BidUp.BusinessLogic.Interfaces;
+using BidUp.DataAccess;
 using BidUp.DataAccess.Entites;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;
@@ -16,12 +17,14 @@ namespace BidUp.BusinessLogic.Services;
 public class AuthService : IAuthService
 {
     private readonly UserManager<User> userManager;
+    private readonly AppDbContext appDbContext;
     private readonly IEmailService emailService;
     private readonly IConfiguration configuration;
 
-    public AuthService(UserManager<User> userManager, IEmailService emailService, IConfiguration configuration)
+    public AuthService(UserManager<User> userManager, AppDbContext appContext, IEmailService emailService, IConfiguration configuration)
     {
         this.userManager = userManager;
+        this.appDbContext = appContext;
         this.emailService = emailService;
         this.configuration = configuration;
     }
@@ -86,40 +89,44 @@ public class AuthService : IAuthService
     public async Task<AppResult<LoginResponse>> Login(LoginRequest loginRequest)
     {
         var user = await userManager.FindByEmailAsync(loginRequest.Email);
+
         if (user is null)
-            return AppResult<LoginResponse>.Failure(ErrorCode.AUTH_INVALID_USERNAME_OR_PASSWORD, ["Invalid email or password."]);
+        {
+            return AppResult<LoginResponse>.Failure(
+                ErrorCode.AUTH_INVALID_USERNAME_OR_PASSWORD,
+                ["Invalid email or password."]);
+        }
 
         if (await userManager.IsLockedOutAsync(user))
-            return AppResult<LoginResponse>.Failure(ErrorCode.AUTH_ACCOUNT_IS_LOCKED_OUT, ["The account has been temporarily locked out."]);
+        {
+            return AppResult<LoginResponse>.Failure(
+                ErrorCode.AUTH_ACCOUNT_IS_LOCKED_OUT,
+                ["The account has been temporarily locked out."]);
+        }
 
         if (!await userManager.CheckPasswordAsync(user, loginRequest.Password))
         {
             await userManager.AccessFailedAsync(user);
-            return AppResult<LoginResponse>.Failure(ErrorCode.AUTH_INVALID_USERNAME_OR_PASSWORD, ["Invalid email or password."]);
+
+            return AppResult<LoginResponse>.Failure(
+                ErrorCode.AUTH_INVALID_USERNAME_OR_PASSWORD,
+                ["Invalid email or password."]);
         }
 
         if (!user.EmailConfirmed)
-            return AppResult<LoginResponse>.Failure(ErrorCode.AUTH_EMAIL_NOT_CONFIRMED, ["The email has not been confirmed."]);
-
-
-        var roles = await userManager.GetRolesAsync(user);
-
-        var loginResponse = new LoginResponse
         {
-            User = new UserInfo
-            {
-                Id = user.Id,
-                FirstName = user.FirstName,
-                LastName = user.LastName,
-                Email = user.Email!,
-                ProfilePictureUrl = user.ProfilePictureUrl,
-                Role = roles.First(),
-            },
-            AccessToken = CreateAccessToken(user, roles),
-            RefreshToken = await CreateRefreshToken(user)
-        };
+            return AppResult<LoginResponse>.Failure(
+                ErrorCode.AUTH_EMAIL_NOT_CONFIRMED,
+                ["The email has not been confirmed."]);
+        }
 
-        return AppResult<LoginResponse>.Success(loginResponse);
+
+        user.AccessFailedCount = 0; // Reset failed attempts counter on successful login
+        user.RefreshToken = CreateRefreshToken();
+
+        await appDbContext.SaveChangesAsync();
+
+        return AppResult<LoginResponse>.Success(await CreateLoginResponseAsync(user));
     }
 
     public async Task<AppResult<LoginResponse>> Refresh(string? refreshToken)
@@ -128,24 +135,7 @@ public class AuthService : IAuthService
         if (user is null)
             return AppResult<LoginResponse>.Failure(ErrorCode.AUTH_INVALID_REFRESH_TOKEN, ["Invalid refresh token."]);
 
-        var roles = await userManager.GetRolesAsync(user);
-
-        var loginResponse = new LoginResponse
-        {
-            User = new UserInfo
-            {
-                Id = user.Id,
-                FirstName = user.FirstName,
-                LastName = user.LastName,
-                Email = user.Email!,
-                ProfilePictureUrl = user.ProfilePictureUrl,
-                Role = roles.First(),
-            },
-            AccessToken = CreateAccessToken(user, roles),
-            RefreshToken = refreshToken!
-        };
-
-        return AppResult<LoginResponse>.Success(loginResponse);
+        return AppResult<LoginResponse>.Success(await CreateLoginResponseAsync(user));
     }
 
     public async Task SendPasswordResetEmail(string email, string urlOfPasswordResetPage)
@@ -217,7 +207,30 @@ public class AuthService : IAuthService
     }
 
 
-    private async Task<string> CreateRefreshToken(User user)
+    private async Task<LoginResponse> CreateLoginResponseAsync(User user)
+    {
+        var roles = await userManager.GetRolesAsync(user);
+        var accessToken = CreateAccessToken(user, roles);
+
+        var loginResponse = new LoginResponse
+        {
+            User = new UserInfo
+            {
+                Id = user.Id,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Email = user.Email!,
+                ProfilePictureUrl = user.ProfilePictureUrl,
+                Role = roles.First(),
+            },
+            AccessToken = accessToken,
+            RefreshToken = user.RefreshToken!
+        };
+
+        return loginResponse;
+    }
+
+    private string CreateRefreshToken()
     {
         var randomNumber = new Byte[32];
 
@@ -228,11 +241,6 @@ public class AuthService : IAuthService
         }
 
         var refreshToken = Convert.ToBase64String(randomNumber);  // Converting the byte array to a base64 string to ensures that the refresh token is in a format that can be easily transmitted or stored in the database
-
-        //save the refresh token into the user record in the db to use it to get the user when the consumer tries to refresh the tokens later
-        user.RefreshToken = refreshToken;
-
-        await userManager.UpdateAsync(user);
 
         return refreshToken;
     }
