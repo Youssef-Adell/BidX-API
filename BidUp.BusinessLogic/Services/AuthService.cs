@@ -120,6 +120,8 @@ public class AuthService : IAuthService
                 ["The email has not been confirmed."]);
         }
 
+
+        user.AccessFailedCount = 0; // Reset failed attempts counter on successful login
         user.RefreshToken = CreateRefreshToken();
 
         await appDbContext.SaveChangesAsync();
