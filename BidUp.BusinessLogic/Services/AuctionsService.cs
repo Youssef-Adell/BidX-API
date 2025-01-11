@@ -1,4 +1,5 @@
 using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using BidUp.BusinessLogic.DTOs.AuctionDTOs;
 using BidUp.BusinessLogic.DTOs.CommonDTOs;
 using BidUp.BusinessLogic.DTOs.QueryParamsDTOs;
@@ -25,82 +26,79 @@ public class AuctionsService : IAuctionsService
 
     public async Task<Page<AuctionResponse>> GetAuctions(AuctionsQueryParams queryParams)
     {
-        var filterdAuctions = appDbContext.Auctions
-            .Include(a => a.Product)
-            .Include(a => a.HighestBid)
-            // Search & Filter (Short circuit if a query param has no value)
-            .Where(a => (queryParams.Search.IsNullOrEmpty() || a.Product.Name.ToLower().Contains(queryParams.Search!)) && // I wont add and index for Product.Name because this query is non-sargable so it cannot efficiently use indexes (https://stackoverflow.com/a/4268107, https://stackoverflow.com/a/799616)
+        // Build the query based on the parameters (Short circuit if a query param has no value)
+        var auctionsQuery = appDbContext.Auctions
+            .Where(a => (queryParams.Search.IsNullOrEmpty() || a.ProductName.Contains(queryParams.Search!)) && // I didn't add and index for ProductName because this query is non-sargable so it cannot efficiently use indexes (https://stackoverflow.com/a/4268107, https://stackoverflow.com/a/799616) consider creating Full-Text index later (https://shorturl.at/COl2f)
+                        (queryParams.ProductCondition == null || a.ProductCondition == queryParams.ProductCondition) && // I didn't add an index for ProductCondition because it is a low selectivity column that has only 2 values (Used, New)
                         (queryParams.CategoryId == null || a.CategoryId == queryParams.CategoryId) &&
                         (queryParams.CityId == null || a.CityId == queryParams.CityId) &&
-                        (queryParams.ProductCondition == null || a.Product.Condition == queryParams.ProductCondition) &&
-                        (queryParams.ActiveOnly == false || a.EndTime > DateTime.UtcNow)); // I think adding an index for Auction.EndTime not worth because the small tables rarely benefit from indexs in addition to it slow the writting operations
+                        (queryParams.ActiveOnly == false || a.EndTime > DateTimeOffset.UtcNow));
 
-        // Use the above query to get the total count of filterd auctions before applying the pagination
-        var totalAuctionsCount = await filterdAuctions.CountAsync();
+        // Get the total count before pagination
+        var totalCount = await auctionsQuery.CountAsync();
+        if (totalCount == 0)
+            return new Page<AuctionResponse>([], queryParams.Page, queryParams.PageSize, totalCount);
 
-        var auctions = await filterdAuctions
+        // Get the list of auctions with pagination and mapping
+        var auctions = await auctionsQuery
             // Get the last auctions first
             .OrderByDescending(a => a.Id)
             // Paginate
             .Skip((queryParams.Page - 1) * queryParams.PageSize)
             .Take(queryParams.PageSize)
+            .ProjectTo<AuctionResponse>(mapper.ConfigurationProvider)
             .AsNoTracking()
             .ToListAsync();
 
-        var auctionsResponses = mapper.Map<IEnumerable<AuctionResponse>>(auctions);
-
-        var response = new Page<AuctionResponse>(auctionsResponses, queryParams.Page, queryParams.PageSize, totalAuctionsCount);
-
-        return response;
+        return new Page<AuctionResponse>(auctions, queryParams.Page, queryParams.PageSize, totalCount);
     }
 
     public async Task<AppResult<Page<AuctionResponse>>> GetUserAuctions(int userId, UserAuctionsQueryParams queryParams)
     {
+        // Build the query based on the parameters
         var userAuctionsQuery = appDbContext.Auctions
-            .Include(a => a.Product)
-            .Include(a => a.HighestBid)
             .Where(a => (a.AuctioneerId == userId) &&
-                        (queryParams.ActiveOnly == false || a.EndTime > DateTime.UtcNow));
+                        (queryParams.ActiveOnly == false || a.EndTime > DateTimeOffset.UtcNow));
 
-        // Use the above query to get the total count of user auctions before applying the pagination
+        // Get the total count before pagination
         var totalCount = await userAuctionsQuery.CountAsync();
 
-        if (totalCount == 0) // be this trick this method will execute only 2 queries at max.
+        if (totalCount == 0) // This ensures that the method will execute only 2 queries at most.
         {
             var userExists = await appDbContext.Users.AnyAsync(a => a.Id == userId);
             if (!userExists)
                 return AppResult<Page<AuctionResponse>>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["User not found."]);
+
+            return AppResult<Page<AuctionResponse>>.Success(new([], queryParams.Page, queryParams.PageSize, totalCount));
         }
 
+        // Get the list of auctions with pagination and mapping
         var userAuctions = await userAuctionsQuery
             // Get the newly added auctions first
             .OrderByDescending(a => a.Id)
             // Paginate
             .Skip((queryParams.Page - 1) * queryParams.PageSize)
             .Take(queryParams.PageSize)
+            .ProjectTo<AuctionResponse>(mapper.ConfigurationProvider)
             .AsNoTracking()
             .ToListAsync();
 
-        var auctionsResponses = mapper.Map<IEnumerable<Auction>, IEnumerable<AuctionResponse>>(userAuctions);
-
-        var response = new Page<AuctionResponse>(auctionsResponses, queryParams.Page, queryParams.PageSize, totalCount);
-
+        var response = new Page<AuctionResponse>(userAuctions, queryParams.Page, queryParams.PageSize, totalCount);
         return AppResult<Page<AuctionResponse>>.Success(response);
     }
 
     public async Task<AppResult<Page<AuctionUserHasBidOnResponse>>> GetAuctionsUserHasBidOn(int userId, AuctionsUserHasBidOnQueryParams queryParams)
     {
-        // Build the query
-        IQueryable<Auction> auctionsUserHasBidOnQuery = appDbContext.Auctions
-            .Include(a => a.Product)
-            .Include(a => a.HighestBid);
+        // Build the query based on the parameters
+        var auctionsUserHasBidOnQuery = appDbContext.Auctions
+            .Where(a =>
+                queryParams.WonOnly
+                    ? a.WinnerId == userId
+                    : a.Bids!.Any(b => b.BidderId == userId) &&
+                      (!queryParams.ActiveOnly || a.EndTime > DateTimeOffset.UtcNow)
+            );
 
-        if (queryParams.WonOnly)
-            auctionsUserHasBidOnQuery = auctionsUserHasBidOnQuery.Where(a => a.WinnerId == userId);
-        else
-            auctionsUserHasBidOnQuery = auctionsUserHasBidOnQuery.Where(a => a.Bids.Any(b => b.BidderId == userId) && (queryParams.ActiveOnly == false || a.EndTime > DateTime.UtcNow));
-
-        // Use the above query to get the total count of auctions user has bid on before applying the pagination
+        // Get the total count before pagination
         var totalCount = await auctionsUserHasBidOnQuery.CountAsync();
 
         if (totalCount == 0)
@@ -108,65 +106,55 @@ public class AuctionsService : IAuctionsService
             var userExists = await appDbContext.Users.AnyAsync(a => a.Id == userId);
             if (!userExists)
                 return AppResult<Page<AuctionUserHasBidOnResponse>>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["User not found."]);
+
+            return AppResult<Page<AuctionUserHasBidOnResponse>>.Success(new([], queryParams.Page, queryParams.PageSize, totalCount));
         }
 
+        // Get the list of auctions with pagination and mapping
         var auctionsUserHasBidOn = await auctionsUserHasBidOnQuery
             // Get the newly added auctions first
             .OrderByDescending(a => a.Id)
             // Paginate
             .Skip((queryParams.Page - 1) * queryParams.PageSize)
             .Take(queryParams.PageSize)
+            .ProjectTo<AuctionUserHasBidOnResponse>(mapper.ConfigurationProvider)
             .AsNoTracking()
             .ToListAsync();
 
-        var auctionsResponses = auctionsUserHasBidOn.Select(a => new AuctionUserHasBidOnResponse
-        {
-            Id = a.Id,
-            ProductName = a.Product.Name,
-            ThumbnailUrl = a.Product.ThumbnailUrl,
-            CurrentPrice = a.CurrentPrice,
-            EndTime = a.EndTime,
-            IsActive = a.IsActive,
-            IsUserWon = !a.IsActive ? a.WinnerId == userId : null
-        });
+        auctionsUserHasBidOn.ForEach(a => a.IsUserWon = a.IsActive ? null : a.WInnerId == userId);
 
-        var response = new Page<AuctionUserHasBidOnResponse>(auctionsResponses, queryParams.Page, queryParams.PageSize, totalCount);
+        var response = new Page<AuctionUserHasBidOnResponse>(auctionsUserHasBidOn, queryParams.Page, queryParams.PageSize, totalCount);
         return AppResult<Page<AuctionUserHasBidOnResponse>>.Success(response);
     }
 
     public async Task<AppResult<AuctionDetailsResponse>> GetAuction(int auctionId)
     {
-        var auction = await appDbContext.Auctions
-            .Include(a => a.Product)
-            .ThenInclude(p => p.Images)
+        var auctionResponse = await appDbContext.Auctions
+            .Include(a => a.ProductImages)
             .Include(a => a.Category)
             .Include(a => a.City)
             .Include(a => a.Auctioneer)
-            .Include(a => a.HighestBid)
+            .ProjectTo<AuctionDetailsResponse>(mapper.ConfigurationProvider)
             .AsNoTracking()
-            .FirstOrDefaultAsync(c => c.Id == auctionId);
+            .SingleOrDefaultAsync(c => c.Id == auctionId);
 
-        if (auction is null)
+        if (auctionResponse is null)
             return AppResult<AuctionDetailsResponse>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Auction not found."]);
 
-        var response = mapper.Map<AuctionDetailsResponse>(auction);
-
-        return AppResult<AuctionDetailsResponse>.Success(response);
+        return AppResult<AuctionDetailsResponse>.Success(auctionResponse);
     }
 
-    public async Task<AppResult<AuctionResponse>> CreateAuction(int currentUserId, CreateAuctionRequest createAuctionRequest, IEnumerable<Stream> productImages)
+    public async Task<AppResult<AuctionResponse>> CreateAuction(int callerId, CreateAuctionRequest request, IEnumerable<Stream> productImages)
     {
-        var validationResult = await ValidateCategoryAndCity(createAuctionRequest.CategoryId, createAuctionRequest.CityId);
-        if (!validationResult.Succeeded)
-            return AppResult<AuctionResponse>.Failure(validationResult.Error!.ErrorCode, validationResult.Error.ErrorMessages);
+        var auction = mapper.Map<CreateAuctionRequest, Auction>(request, o => o.Items["AuctioneerId"] = callerId);
 
-        var auction = mapper.Map<CreateAuctionRequest, Auction>(createAuctionRequest);
-        auction.AuctioneerId = currentUserId;
-        auction.SetTime(createAuctionRequest.DurationInSeconds);
+        var validationResult = await ValidateCategoryAndCity(request.CategoryId, request.CityId);
+        if (!validationResult.Succeeded)
+            return AppResult<AuctionResponse>.Failure(validationResult.Error!);
 
         var assigningResult = await AssignImagesToAuction(auction, productImages);
         if (!assigningResult.Succeeded)
-            return AppResult<AuctionResponse>.Failure(assigningResult.Error!.ErrorCode, assigningResult.Error.ErrorMessages);
+            return AppResult<AuctionResponse>.Failure(assigningResult.Error!);
 
         appDbContext.Add(auction);
         await appDbContext.SaveChangesAsync();
@@ -175,10 +163,10 @@ public class AuctionsService : IAuctionsService
         return AppResult<AuctionResponse>.Success(response);
     }
 
-    public async Task<AppResult> DeleteAuction(int currentUserId, int auctionId)
+    public async Task<AppResult> DeleteAuction(int callerId, int auctionId)
     {
         var noOfRowsAffected = await appDbContext.Auctions
-            .Where(a => a.Id == auctionId && a.AuctioneerId == currentUserId)
+            .Where(a => a.Id == auctionId && a.AuctioneerId == callerId)
             .ExecuteDeleteAsync();
 
         if (noOfRowsAffected <= 0)
@@ -190,40 +178,49 @@ public class AuctionsService : IAuctionsService
 
     private async Task<AppResult> ValidateCategoryAndCity(int categoryId, int cityId)
     {
-        // Multiple active operations on the same context instance are not supported so i cant do these 2 calls concurently using Task.WhenAll 
-        var isValidCategory = await appDbContext.Categories.AnyAsync(c => c.Id == categoryId && !c.IsDeleted);
-        var isValidCity = await appDbContext.Cities.AnyAsync(c => c.Id == cityId);
+        // Multiple active operations on the same context instance are not supportet
+        // so i cant do these 2 calls concurently using Task.WhenAll but I can combine them into a single query like this
+        var result = await appDbContext.Categories
+            .Where(c => c.Id == categoryId && !c.IsDeleted)
+            .Select(c => new
+            {
+                CategoryExists = true,
+                CityExists = appDbContext.Cities.Any(ci => ci.Id == cityId)
+            })
+            .AsNoTracking()
+            .FirstOrDefaultAsync();
 
-        if (!isValidCategory)
-            return AppResult.Failure(ErrorCode.USER_INPUT_INVALID, ["Invalid category id."]);
+        var errors = new List<string>();
 
-        if (!isValidCity)
-            return AppResult.Failure(ErrorCode.USER_INPUT_INVALID, ["Invalid city id."]);
+        if (result == null || !result.CategoryExists)
+            errors.Add("Invalid category id.");
+
+        if (result == null || !result.CityExists)
+            errors.Add("Invalid city id.");
+
+        if (errors.Count > 0)
+            return AppResult.Failure(ErrorCode.USER_INPUT_INVALID, errors);
 
         return AppResult.Success();
     }
 
     private async Task<AppResult> AssignImagesToAuction(Auction auction, IEnumerable<Stream> productImages)
     {
+        // Upload and assign product thumbnail  
+        var thumbnailUploadResult = await cloudService.UploadThumbnail(productImages.First());
+        if (!thumbnailUploadResult.Succeeded)
+            return AppResult.Failure(thumbnailUploadResult.Error!);
+
+        auction.ThumbnailUrl = thumbnailUploadResult.Response!.FileUrl;
+
         // Upload and assign product images
         var imagesUploadResult = await cloudService.UploadImages(productImages);
-
         if (!imagesUploadResult.Succeeded)
-            return AppResult.Failure(imagesUploadResult.Error!.ErrorCode, imagesUploadResult.Error.ErrorMessages);
+            return AppResult.Failure(imagesUploadResult.Error!);
 
-        foreach (var result in imagesUploadResult.Response!)
-        {
-            var image = new ProductImage { Id = result.FileId, Url = result.FileUrl };
-            auction.Product.Images.Add(image);
-        };
-
-        // Upload and assign product thumbnail
-        var thumbnailUploadResult = await cloudService.UploadThumbnail(productImages.First());
-
-        if (!thumbnailUploadResult.Succeeded)
-            return AppResult.Failure(thumbnailUploadResult.Error!.ErrorCode, thumbnailUploadResult.Error.ErrorMessages);
-
-        auction.Product.ThumbnailUrl = thumbnailUploadResult.Response!.FileUrl;
+        auction.ProductImages = imagesUploadResult.Response!
+                                .Select(response => new ProductImage { Id = response.FileId, Url = response.FileUrl })
+                                .ToList();
 
         return AppResult.Success();
     }

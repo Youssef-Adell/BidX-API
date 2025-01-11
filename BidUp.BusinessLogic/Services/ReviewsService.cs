@@ -36,7 +36,7 @@ public class ReviewsService : IReviewsService
                 Reviewer = new Reviewer
                 {
                     Id = r.ReviewerId,
-                    Name = $"{r.Reviewer!.FirstName} {r.Reviewer.LastName}",
+                    FullName = $"{r.Reviewer!.FirstName} {r.Reviewer.LastName}",
                     ProfilePictureUrl = r.Reviewer.ProfilePictureUrl,
                     TotalRating = r.Reviewer.TotalRating
                 }

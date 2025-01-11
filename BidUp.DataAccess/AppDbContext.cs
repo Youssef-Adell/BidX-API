@@ -1,5 +1,6 @@
 namespace BidUp.DataAccess;
 
+using System.Reflection;
 using BidUp.DataAccess.Entites;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -24,10 +25,10 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<int>, int>
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
+        builder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
 
         builder.Entity<User>().ToTable("User", "security")
-            .HasIndex(u => u.RefreshToken) //to improve the search performance while getting the user associated to the refreshtoken
-            .HasDatabaseName("RefreshTokenIndex");
+            .HasIndex(u => u.RefreshToken); //to improve the search performance while getting the user associated to the refreshtoken
         builder.Entity<IdentityRole<int>>()
             .ToTable("Role", "security");
         builder.Entity<IdentityUserRole<int>>()
@@ -40,31 +41,6 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<int>, int>
             .ToTable("RoleClaim", "security");
         builder.Entity<IdentityUserToken<int>>()
             .ToTable("UserToken", "security");
-
-        builder.Entity<Auction>()
-            .HasMany(a => a.Bids)
-            .WithOne(b => b.Auction)
-            .IsRequired()
-            .OnDelete(DeleteBehavior.Cascade);
-        builder.Entity<Auction>()
-            .HasOne(a => a.HighestBid)
-            .WithOne()
-            .HasForeignKey<Auction>(a => a.HighestBidId);
-        builder.Entity<Auction>()
-            .HasOne(a => a.Product)
-            .WithOne()
-            .HasForeignKey<Product>(p => p.AuctionId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        builder.Entity<Product>()
-            .Property(p => p.Condition)
-            .HasConversion(
-                conditionObj => conditionObj.ToString(),
-                conditionColumn => Enum.Parse<ProductCondition>(conditionColumn));
-        builder.Entity<Product>()
-            .HasMany(p => p.Images)
-            .WithOne()
-            .OnDelete(DeleteBehavior.Cascade);
 
         builder.Entity<Chat>()
             .HasMany(c => c.Users)
@@ -89,14 +65,17 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<int>, int>
         builder.Entity<User>()
             .Property(u => u.TotalRating)
             .HasPrecision(2, 1);
+        builder.Entity<User>()
+            .Property(u => u.FullName)
+            .HasComputedColumnSql("[FirstName] + ' ' + [LastName]", stored: true);
     }
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
-        // I removed this convition to make the onDelete uses its default value which is NoAction instead of using CascadeDelete as a default for all required relationships
+        // I removed this Convention to make the onDelete uses its default value which is NoAction instead of using CascadeDelete as a default for all required relationships
         configurationBuilder.Conventions.Remove<CascadeDeleteConvention>();
 
-        // I removed this convention too because if i didnt, the CascadeDeleteConvention will be aplied to any DbSet exists, although I removed CascadeDeleteConvention above (i think it is a bug in EF, i may open an issue in github about it later)
+        // I removed this Convention too because if i didnt, the CascadeDeleteConvention will be aplied to any DbSet exists, although I removed CascadeDeleteConvention above (i think it is a bug in EF, i may open an issue in github about it later)
         configurationBuilder.Conventions.Remove<TableNameFromDbSetConvention>();
     }
 }

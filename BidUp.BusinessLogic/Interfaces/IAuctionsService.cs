@@ -10,6 +10,6 @@ public interface IAuctionsService
     Task<AppResult<Page<AuctionResponse>>> GetUserAuctions(int userId, UserAuctionsQueryParams queryParams);
     Task<AppResult<Page<AuctionUserHasBidOnResponse>>> GetAuctionsUserHasBidOn(int userId, AuctionsUserHasBidOnQueryParams queryParams);
     Task<AppResult<AuctionDetailsResponse>> GetAuction(int auctionId);
-    Task<AppResult<AuctionResponse>> CreateAuction(int currentUserId, CreateAuctionRequest createAuctionRequest, IEnumerable<Stream> productImages);
-    Task<AppResult> DeleteAuction(int currentUserId, int auctionId);
+    Task<AppResult<AuctionResponse>> CreateAuction(int callerId, CreateAuctionRequest request, IEnumerable<Stream> productImages);
+    Task<AppResult> DeleteAuction(int callerId, int auctionId);
 }

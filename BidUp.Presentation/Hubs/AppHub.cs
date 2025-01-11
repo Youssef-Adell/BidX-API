@@ -12,12 +12,12 @@ namespace BidUp.Presentation.Hubs;
 
 public class AppHub : Hub<IAppHubClient>
 {
-    private readonly IBiddingService biddingService;
+    private readonly IBidsService bidsService;
     private readonly IChatService chatService;
 
-    public AppHub(IBiddingService biddingService, IChatService chatService)
+    public AppHub(IBidsService bidsService, IChatService chatService)
     {
-        this.biddingService = biddingService;
+        this.bidsService = bidsService;
         this.chatService = chatService;
     }
 
@@ -104,11 +104,11 @@ public class AppHub : Hub<IAppHubClient>
 
 
     [Authorize]
-    public async Task BidUp(BidRequest bidRequest)
+    public async Task PlaceBid(BidRequest request)
     {
         var userId = int.Parse(Context.UserIdentifier!);
 
-        var result = await biddingService.BidUp(userId, bidRequest);
+        var result = await bidsService.PlaceBid(userId, request);
 
         if (!result.Succeeded)
         {
@@ -124,11 +124,11 @@ public class AppHub : Hub<IAppHubClient>
     }
 
     [Authorize]
-    public async Task AcceptBid(AcceptBidRequest acceptBidRequest)
+    public async Task AcceptBid(AcceptBidRequest request)
     {
         var userId = int.Parse(Context.UserIdentifier!);
 
-        var result = await biddingService.AcceptBid(userId, acceptBidRequest);
+        var result = await bidsService.AcceptBid(userId, request);
 
         if (!result.Succeeded)
         {
@@ -144,15 +144,15 @@ public class AppHub : Hub<IAppHubClient>
     }
 
     // The client must call this method when the auction page loads to be able to receive bidding updates in realtime
-    public async Task JoinAuctionRoom(JoinAuctionRoomRequest joinAuctionRoomRequest)
+    public async Task JoinAuctionRoom(JoinAuctionRoomRequest request)
     {
-        await Groups.AddToGroupAsync(Context.ConnectionId, joinAuctionRoomRequest.AuctionId.ToString());
+        await Groups.AddToGroupAsync(Context.ConnectionId, request.AuctionId.ToString());
     }
 
     // The client must call this method when the auction page is about to be closed to stop receiving unnecessary bidding updates
-    public async Task LeaveAuctionRoom(LeaveAuctionRoomRequest leaveAuctionRoomRequest)
+    public async Task LeaveAuctionRoom(LeaveAuctionRoomRequest request)
     {
-        await Groups.RemoveFromGroupAsync(Context.ConnectionId, leaveAuctionRoomRequest.AuctionId.ToString());
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, request.AuctionId.ToString());
     }
 
 

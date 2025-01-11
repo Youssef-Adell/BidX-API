@@ -12,11 +12,11 @@ namespace BidUp.Presentation.Controllers;
 [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
 public class BidsController : ControllerBase
 {
-    private readonly IBiddingService biddingService;
+    private readonly IBidsService bidsService;
 
-    public BidsController(IBiddingService biddingService)
+    public BidsController(IBidsService bidsService)
     {
-        this.biddingService = biddingService;
+        this.bidsService = bidsService;
 
     }
 
@@ -26,7 +26,7 @@ public class BidsController : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetAuctionBids(int auctionId, [FromQuery] BidsQueryParams queryParams)
     {
-        var result = await biddingService.GetAuctionBids(auctionId, queryParams);
+        var result = await bidsService.GetAuctionBids(auctionId, queryParams);
 
         if (!result.Succeeded)
             return NotFound(result.Error);
@@ -39,7 +39,7 @@ public class BidsController : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetAcceptedBid(int auctionId)
     {
-        var result = await biddingService.GetAcceptedBid(auctionId);
+        var result = await bidsService.GetAcceptedBid(auctionId);
 
         if (!result.Succeeded)
             return NotFound(result.Error);
@@ -52,7 +52,7 @@ public class BidsController : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetHighestBid(int auctionId)
     {
-        var result = await biddingService.GetHighestBid(auctionId);
+        var result = await bidsService.GetHighestBid(auctionId);
 
         if (!result.Succeeded)
             return NotFound(result.Error);

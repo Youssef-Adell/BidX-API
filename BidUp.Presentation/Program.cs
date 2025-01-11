@@ -155,7 +155,7 @@ builder.Services.AddScoped<ICitiesService, CitiesServices>();
 builder.Services.AddScoped<ICategoriesService, CategoriesService>();
 builder.Services.AddScoped<ICloudService, CloudinaryCloudService>();
 builder.Services.AddScoped<IAuctionsService, AuctionsService>();
-builder.Services.AddScoped<IBiddingService, BiddingService>();
+builder.Services.AddScoped<IBidsService, BidsService>();
 builder.Services.AddScoped<IUsersService, UsersService>();
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IReviewsService, ReviewsService>();
