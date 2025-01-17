@@ -58,7 +58,7 @@ public class CloudinaryCloudService : ICloudService
         var validationResult = ValidateIcon(icon);
 
         if (!validationResult.Succeeded)
-            return AppResult<UploadResponse>.Failure(validationResult.Error!.ErrorCode, validationResult.Error.ErrorMessages);
+            return AppResult<UploadResponse>.Failure(validationResult.Error!);
 
         var response = await UploadIcon(icon);
 
@@ -70,7 +70,7 @@ public class CloudinaryCloudService : ICloudService
         var validationResult = ValidateImage(image);
 
         if (!validationResult.Succeeded)
-            return AppResult<UploadResponse>.Failure(validationResult.Error!.ErrorCode, validationResult.Error.ErrorMessages);
+            return AppResult<UploadResponse>.Failure(validationResult.Error!);
 
         var response = await UploadImage(image, thumbnailSize, ThumbnailCropMode);
 
@@ -83,7 +83,7 @@ public class CloudinaryCloudService : ICloudService
         {
             var validationResult = ValidateImage(image);
             if (!validationResult.Succeeded)
-                return AppResult<UploadResponse[]>.Failure(validationResult.Error!.ErrorCode, validationResult.Error.ErrorMessages);
+                return AppResult<UploadResponse[]>.Failure(validationResult.Error!);
         }
 
         var uploadTasks = images.Select(image => UploadImage(image, productImageSize, ProductImageCropMode));
