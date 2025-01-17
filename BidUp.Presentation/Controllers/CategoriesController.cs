@@ -51,11 +51,11 @@ public class CategoriesController : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status422UnprocessableEntity)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<IActionResult> AddCategory([FromForm] AddCategoryRequest addCategoryRequest, [Required] IFormFile icon)
+    public async Task<IActionResult> AddCategory([FromForm] AddCategoryRequest request, [Required] IFormFile icon)
     {
         using (var categoryIconStream = icon.OpenReadStream())
         {
-            var result = await categoriesService.AddCategory(addCategoryRequest, categoryIconStream);
+            var result = await categoriesService.AddCategory(request, categoryIconStream);
 
             if (!result.Succeeded)
                 return UnprocessableEntity(result.Error);
@@ -74,14 +74,14 @@ public class CategoriesController : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<IActionResult> UpdateCategory(int id, [FromForm] UpdateCategoryRequest updateCategoryRequest, IFormFile? icon)
+    public async Task<IActionResult> UpdateCategory(int id, [FromForm] UpdateCategoryRequest request, IFormFile? icon)
     {
         // If categoryIconStream is null, the using statement effectively does nothing with regard to resource disposal since there is no resource to dispose of.
         // The body of the using statement will still execute with categoryIconStream being null.
 
         using (var categoryIconStream = icon?.OpenReadStream())
         {
-            var result = await categoriesService.UpdateCategory(id, updateCategoryRequest, categoryIconStream);
+            var result = await categoriesService.UpdateCategory(id, request, categoryIconStream);
 
             if (!result.Succeeded)
             {

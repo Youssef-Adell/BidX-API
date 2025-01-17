@@ -63,6 +63,9 @@ public class MappingProfile : Profile
 
         #region Categories
         CreateMap<Category, CategoryResponse>();
+
+        CreateMap<AddCategoryRequest, Category>()
+            .ForMember(d => d.IconUrl, o => o.MapFrom((_, _, _, context) => (int)context.Items["IconUrl"]));
         #endregion
 
 
@@ -82,9 +85,9 @@ public class MappingProfile : Profile
             .ForMember(d => d.RevieweeId, o => o.MapFrom((_, _, _, context) => (int)context.Items["RevieweeId"]));
         #endregion
 
+
         #region  Profiles
         CreateMap<User, ProfileResponse>();
-
         #endregion
 
 
