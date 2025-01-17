@@ -1,6 +1,6 @@
-namespace BidUp.BusinessLogic.DTOs.UserProfileDTOs;
+namespace BidUp.BusinessLogic.DTOs.ProfileDTOs;
 
-public class UserProfileResponse
+public class ProfileResponse
 {
     public int Id { get; init; }
     public required string FirstName { get; init; }

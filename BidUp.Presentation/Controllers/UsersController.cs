@@ -3,7 +3,7 @@ using System.Security.Claims;
 using BidUp.BusinessLogic.DTOs.AuctionDTOs;
 using BidUp.BusinessLogic.DTOs.CommonDTOs;
 using BidUp.BusinessLogic.DTOs.QueryParamsDTOs;
-using BidUp.BusinessLogic.DTOs.UserProfileDTOs;
+using BidUp.BusinessLogic.DTOs.ProfileDTOs;
 using BidUp.BusinessLogic.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -17,12 +17,12 @@ namespace BidUp.Presentation.Controllers;
 public class UsersController : ControllerBase
 {
     private readonly IAuctionsService auctionsService;
-    private readonly IUsersService usersService;
+    private readonly IProfilesService profilesService;
 
-    public UsersController(IAuctionsService auctionsService, IUsersService usersService)
+    public UsersController(IAuctionsService auctionsService, IProfilesService profilesService)
     {
         this.auctionsService = auctionsService;
-        this.usersService = usersService;
+        this.profilesService = profilesService;
     }
 
 
@@ -61,11 +61,11 @@ public class UsersController : ControllerBase
 
 
     [HttpGet("{userId}/profile")]
-    [ProducesResponseType(typeof(UserProfileResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProfileResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetUserProfile(int userId)
+    public async Task<IActionResult> GetProfile(int userId)
     {
-        var result = await usersService.GetUserProfile(userId);
+        var result = await profilesService.GetProfile(userId);
 
         if (!result.Succeeded)
             return NotFound(result.Error);
@@ -78,11 +78,11 @@ public class UsersController : ControllerBase
     [Authorize]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> UpdateCurrentUserProfile(UserProfileUpdateRequest userProfileUpdateRequest)
+    public async Task<IActionResult> UpdateCurrentProfile(ProfileUpdateRequest request)
     {
         var userId = int.Parse(User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value!);
 
-        await usersService.UpdateUserProfile(userId, userProfileUpdateRequest);
+        await profilesService.UpdateProfile(userId, request);
 
         return NoContent();
     }
@@ -92,13 +92,13 @@ public class UsersController : ControllerBase
     [ProducesResponseType(typeof(UpdatedProfilePictureResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status422UnprocessableEntity)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> UpdateCurrentUserProfilePicture([Required] IFormFile profilePicture)
+    public async Task<IActionResult> UpdateCurrentProfilePicture([Required] IFormFile profilePicture)
     {
         var userId = int.Parse(User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value!);
 
         using (var profilePictureStream = profilePicture.OpenReadStream())
         {
-            var result = await usersService.UpdateUserProfilePicture(userId, profilePictureStream);
+            var result = await profilesService.UpdateProfilePicture(userId, profilePictureStream);
 
             if (!result.Succeeded)
                 return UnprocessableEntity(result.Error);

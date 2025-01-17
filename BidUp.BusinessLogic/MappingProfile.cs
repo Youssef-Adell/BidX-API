@@ -7,6 +7,7 @@ using BidUp.BusinessLogic.DTOs.CategoryDTOs;
 using BidUp.BusinessLogic.DTOs.ChatDTOs;
 using BidUp.BusinessLogic.DTOs.CityDTOs;
 using BidUp.BusinessLogic.DTOs.ReviewsDTOs;
+using BidUp.BusinessLogic.DTOs.ProfileDTOs;
 using BidUp.DataAccess.Entites;
 
 namespace BidUp.BusinessLogic;
@@ -81,6 +82,12 @@ public class MappingProfile : Profile
             .ForMember(d => d.RevieweeId, o => o.MapFrom((_, _, _, context) => (int)context.Items["RevieweeId"]));
         #endregion
 
+        #region  Profiles
+        CreateMap<User, ProfileResponse>();
+
+        #endregion
+
+
         #region Auth
         CreateMap<RegisterRequest, User>()
             .ForMember(d => d.UserName, o => o.MapFrom((_, _, _, context) => (string)context.Items["UserName"]))
@@ -93,6 +100,6 @@ public class MappingProfile : Profile
         CreateMap<User, LoginResponse>()
             .ForMember(d => d.AccessToken, o => o.MapFrom((_, _, _, context) => (string)context.Items["AccessToken"]))
             .ForMember(d => d.User, o => o.MapFrom(s => s)); // Need to be specified explicitly otherwise the d.User will be null
-        #endregion
+        #endregion    
     }
 }

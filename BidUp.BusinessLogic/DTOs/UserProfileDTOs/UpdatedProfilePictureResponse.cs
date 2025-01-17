@@ -1,4 +1,4 @@
-namespace BidUp.BusinessLogic.DTOs.UserProfileDTOs;
+namespace BidUp.BusinessLogic.DTOs.ProfileDTOs;
 
 public class UpdatedProfilePictureResponse
 {
