@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using AutoMapper;
 using BidUp.BusinessLogic.DTOs.AuctionDTOs;
+using BidUp.BusinessLogic.DTOs.AuthDTOs;
 using BidUp.BusinessLogic.DTOs.BidDTOs;
 using BidUp.BusinessLogic.DTOs.CategoryDTOs;
 using BidUp.BusinessLogic.DTOs.ChatDTOs;
@@ -78,6 +79,20 @@ public class MappingProfile : Profile
         CreateMap<AddReviewRequest, Review>()
             .ForMember(d => d.ReviewerId, o => o.MapFrom((_, _, _, context) => (int)context.Items["ReviewerId"]))
             .ForMember(d => d.RevieweeId, o => o.MapFrom((_, _, _, context) => (int)context.Items["RevieweeId"]));
+        #endregion
+
+        #region Auth
+        CreateMap<RegisterRequest, User>()
+            .ForMember(d => d.UserName, o => o.MapFrom((_, _, _, context) => (string)context.Items["UserName"]))
+            .ForMember(d => d.FirstName, o => o.MapFrom(s => s.FirstName.Trim()))
+            .ForMember(d => d.LastName, o => o.MapFrom(s => s.LastName.Trim()))
+            .ForMember(d => d.Email, o => o.MapFrom(s => s.Email.Trim()));
+
+        CreateMap<User, UserInfo>()
+            .ForMember(d => d.Role, o => o.MapFrom((_, _, _, context) => (string)context.Items["Role"]));
+        CreateMap<User, LoginResponse>()
+            .ForMember(d => d.AccessToken, o => o.MapFrom((_, _, _, context) => (string)context.Items["AccessToken"]))
+            .ForMember(d => d.User, o => o.MapFrom(s => s)); // Need to be specified explicitly otherwise the d.User will be null
         #endregion
     }
 }

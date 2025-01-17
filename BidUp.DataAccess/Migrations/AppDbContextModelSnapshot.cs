@@ -84,7 +84,7 @@ namespace BidUp.DataAccess.Migrations
 
                     b.HasIndex("WinnerId");
 
-                    b.ToTable("Auction", t =>
+                    b.ToTable("Auction", null, t =>
                         {
                             t.HasCheckConstraint("CK_Auction_ProductCondition", "ProductCondition IN ('New', 'Used')");
                         });
@@ -121,7 +121,7 @@ namespace BidUp.DataAccess.Migrations
                     b.HasIndex("AuctionId", "Amount")
                         .IsDescending();
 
-                    b.ToTable("Bid");
+                    b.ToTable("Bid", (string)null);
                 });
 
             modelBuilder.Entity("BidUp.DataAccess.Entites.Category", b =>
@@ -145,7 +145,7 @@ namespace BidUp.DataAccess.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Category");
+                    b.ToTable("Category", (string)null);
                 });
 
             modelBuilder.Entity("BidUp.DataAccess.Entites.Chat", b =>
@@ -158,7 +158,7 @@ namespace BidUp.DataAccess.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Chat");
+                    b.ToTable("Chat", (string)null);
                 });
 
             modelBuilder.Entity("BidUp.DataAccess.Entites.City", b =>
@@ -175,7 +175,7 @@ namespace BidUp.DataAccess.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("City");
+                    b.ToTable("City", (string)null);
                 });
 
             modelBuilder.Entity("BidUp.DataAccess.Entites.Message", b =>
@@ -208,7 +208,7 @@ namespace BidUp.DataAccess.Migrations
 
                     b.HasIndex("SenderId");
 
-                    b.ToTable("Message");
+                    b.ToTable("Message", (string)null);
                 });
 
             modelBuilder.Entity("BidUp.DataAccess.Entites.ProductImage", b =>
@@ -228,7 +228,7 @@ namespace BidUp.DataAccess.Migrations
 
                     b.HasIndex("AuctionId");
 
-                    b.ToTable("ProductImage");
+                    b.ToTable("ProductImage", (string)null);
                 });
 
             modelBuilder.Entity("BidUp.DataAccess.Entites.Review", b =>
@@ -264,7 +264,7 @@ namespace BidUp.DataAccess.Migrations
 
                     b.HasIndex("ReviewerId");
 
-                    b.ToTable("Review");
+                    b.ToTable("Review", (string)null);
                 });
 
             modelBuilder.Entity("BidUp.DataAccess.Entites.User", b =>
@@ -376,7 +376,7 @@ namespace BidUp.DataAccess.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("UserChat");
+                    b.ToTable("UserChat", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole<int>", b =>

@@ -2,6 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using AutoMapper;
 using BidUp.BusinessLogic.DTOs.AuthDTOs;
 using BidUp.BusinessLogic.DTOs.CommonDTOs;
 using BidUp.BusinessLogic.Interfaces;
@@ -20,26 +21,24 @@ public class AuthService : IAuthService
     private readonly AppDbContext appDbContext;
     private readonly IEmailService emailService;
     private readonly IConfiguration configuration;
+    private readonly IMapper mapper;
 
-    public AuthService(UserManager<User> userManager, AppDbContext appContext, IEmailService emailService, IConfiguration configuration)
+    public AuthService(UserManager<User> userManager, AppDbContext appDbContext, IEmailService emailService, IConfiguration configuration, IMapper mapper)
     {
         this.userManager = userManager;
-        this.appDbContext = appContext;
+        this.appDbContext = appDbContext;
         this.emailService = emailService;
         this.configuration = configuration;
+        this.mapper = mapper;
     }
 
-    public async Task<AppResult> Register(RegisterRequest registerRequest, string userRole)
+    public async Task<AppResult> Register(RegisterRequest request, string userRole)
     {
-        var user = new User()
-        {
-            FirstName = registerRequest.FirstName.Trim(),
-            LastName = registerRequest.LastName.Trim(),
-            UserName = Guid.NewGuid().ToString(), // because it needs a unique value and we dont want to ask user to enter it to make the register process easier, and if we set it to the email value it will give user 2 errors in case if the entered email is already taken, one for username and one for email
-            Email = registerRequest.Email.Trim()
-        };
+        var user = mapper.Map<RegisterRequest, User>(request, o =>
+            o.Items["UserName"] = Guid.NewGuid().ToString() // because it needs a unique value and we dont want to ask user to enter it to make the register process easier, and if we set it to the email value it will give user 2 errors in case if the entered email is already taken, one for username and one for email
+        );
 
-        var creationResult = await userManager.CreateAsync(user, registerRequest.Password.Trim());
+        var creationResult = await userManager.CreateAsync(user, request.Password.Trim());
         if (!creationResult.Succeeded)
         {
             var errorMessages = creationResult.Errors.Select(error => error.Description);
@@ -86,9 +85,9 @@ public class AuthService : IAuthService
         return true;
     }
 
-    public async Task<AppResult<LoginResponse>> Login(LoginRequest loginRequest)
+    public async Task<AppResult<LoginResponse>> Login(LoginRequest request)
     {
-        var user = await userManager.FindByEmailAsync(loginRequest.Email);
+        var user = await userManager.FindByEmailAsync(request.Email);
 
         if (user is null)
         {
@@ -104,7 +103,7 @@ public class AuthService : IAuthService
                 ["The account has been temporarily locked out."]);
         }
 
-        if (!await userManager.CheckPasswordAsync(user, loginRequest.Password))
+        if (!await userManager.CheckPasswordAsync(user, request.Password))
         {
             await userManager.AccessFailedAsync(user);
 
@@ -153,15 +152,15 @@ public class AuthService : IAuthService
         }
     }
 
-    public async Task<AppResult> ResetPassword(ResetPasswordRequest resetPasswordRequest)
+    public async Task<AppResult> ResetPassword(ResetPasswordRequest request)
     {
-        var user = await userManager.FindByIdAsync(resetPasswordRequest.UserId);
+        var user = await userManager.FindByIdAsync(request.UserId);
 
         if (user != null && user.EmailConfirmed)
         {
-            resetPasswordRequest.Token = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(resetPasswordRequest.Token));
+            request.Token = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(request.Token));
 
-            var resetResult = await userManager.ResetPasswordAsync(user, resetPasswordRequest.Token, resetPasswordRequest.NewPassword);
+            var resetResult = await userManager.ResetPasswordAsync(user, request.Token, request.NewPassword);
 
             if (!resetResult.Succeeded)
             {
@@ -175,13 +174,13 @@ public class AuthService : IAuthService
         return AppResult.Failure(ErrorCode.AUTH_PASSWORD_RESET_FAILD, ["Oops! Something went wrong."]);
     }
 
-    public async Task<AppResult> ChangePassword(int userId, ChangePasswordRequest changePasswordRequest)
+    public async Task<AppResult> ChangePassword(int userId, ChangePasswordRequest request)
     {
         var user = await userManager.FindByIdAsync(userId.ToString());
 
         if (user != null)
         {
-            var changingResult = await userManager.ChangePasswordAsync(user, changePasswordRequest.CurrentPassword, changePasswordRequest.NewPassword);
+            var changingResult = await userManager.ChangePasswordAsync(user, request.CurrentPassword, request.NewPassword);
 
             if (!changingResult.Succeeded)
             {
@@ -212,22 +211,13 @@ public class AuthService : IAuthService
         var roles = await userManager.GetRolesAsync(user);
         var accessToken = CreateAccessToken(user, roles);
 
-        var loginResponse = new LoginResponse
+        var response = mapper.Map<User, LoginResponse>(user, o =>
         {
-            User = new UserInfo
-            {
-                Id = user.Id,
-                FirstName = user.FirstName,
-                LastName = user.LastName,
-                Email = user.Email!,
-                ProfilePictureUrl = user.ProfilePictureUrl,
-                Role = roles.First(),
-            },
-            AccessToken = accessToken,
-            RefreshToken = user.RefreshToken!
-        };
+            o.Items["Role"] = roles.First();
+            o.Items["AccessToken"] = accessToken;
+        });
 
-        return loginResponse;
+        return response;
     }
 
     private string CreateRefreshToken()

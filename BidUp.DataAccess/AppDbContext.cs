@@ -9,9 +9,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Conventions;
 
 public class AppDbContext : IdentityDbContext<User, IdentityRole<int>, int>
 {
-    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
-    {
-    }
+    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
     public required DbSet<City> Cities { get; set; }
     public required DbSet<Category> Categories { get; set; }
@@ -26,19 +24,6 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<int>, int>
     {
         base.OnModelCreating(builder);
         builder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
-
-        builder.Entity<IdentityRole<int>>()
-            .ToTable("Role", "security");
-        builder.Entity<IdentityUserRole<int>>()
-            .ToTable("UserRole", "security");
-        builder.Entity<IdentityUserClaim<int>>()
-            .ToTable("UserClaim", "security");
-        builder.Entity<IdentityUserLogin<int>>()
-            .ToTable("UserLogin", "security");
-        builder.Entity<IdentityRoleClaim<int>>()
-            .ToTable("RoleClaim", "security");
-        builder.Entity<IdentityUserToken<int>>()
-            .ToTable("UserToken", "security");
 
         builder.Entity<Chat>()
             .HasMany(c => c.Users)
