@@ -44,11 +44,11 @@ public class ReviewsController : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> AddReview(int userId, AddReviewRequest addReviewRequest)
+    public async Task<IActionResult> AddReview(int userId, AddReviewRequest request)
     {
         var reviewerId = int.Parse(User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value!);
 
-        var result = await reviewsService.AddReview(reviewerId, userId, addReviewRequest);
+        var result = await reviewsService.AddReview(reviewerId, userId, request);
 
         if (!result.Succeeded)
         {
@@ -56,7 +56,7 @@ public class ReviewsController : ControllerBase
             if (errorCode == ErrorCode.RESOURCE_NOT_FOUND)
                 return NotFound(result.Error);
 
-            else if (errorCode == ErrorCode.PERMISSION_DENIED)
+            else if (errorCode == ErrorCode.REVIEWING_NOW_ALLOWED)
                 return StatusCode(StatusCodes.Status403Forbidden, result.Error);
 
             else if (errorCode == ErrorCode.REVIEW_ALREADY_EXISTS)
@@ -90,11 +90,11 @@ public class ReviewsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> UpdateMyReview(int userId, UpdateReviewRequest updateReviewRequest)
+    public async Task<IActionResult> UpdateMyReview(int userId, UpdateReviewRequest request)
     {
         var reviewerId = int.Parse(User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value!);
 
-        var result = await reviewsService.UpdateReview(reviewerId, userId, updateReviewRequest);
+        var result = await reviewsService.UpdateReview(reviewerId, userId, request);
 
         if (!result.Succeeded)
             return NotFound(result.Error);

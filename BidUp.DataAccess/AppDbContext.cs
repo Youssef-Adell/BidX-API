@@ -27,8 +27,6 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<int>, int>
         base.OnModelCreating(builder);
         builder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
 
-        builder.Entity<User>().ToTable("User", "security")
-            .HasIndex(u => u.RefreshToken); //to improve the search performance while getting the user associated to the refreshtoken
         builder.Entity<IdentityRole<int>>()
             .ToTable("Role", "security");
         builder.Entity<IdentityUserRole<int>>()
@@ -46,28 +44,6 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<int>, int>
             .HasMany(c => c.Users)
             .WithMany(u => u.Chats)
             .UsingEntity<UserChat>();
-
-        builder.Entity<User>()
-            .HasMany(u => u.ReviewsWritten)
-            .WithOne(r => r.Reviewer)
-            .HasForeignKey(r => r.ReviewerId)
-            .OnDelete(DeleteBehavior.Restrict);
-        builder.Entity<User>()
-            .HasMany(u => u.ReviewsReceived)
-            .WithOne(r => r.Reviewee)
-            .HasForeignKey(r => r.RevieweeId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        builder.Entity<Review>()
-            .Property(r => r.Rating)
-            .HasPrecision(2, 1); // 2 total digits at max includes 1 digit at right of the decimal point (ex: 3.5)
-
-        builder.Entity<User>()
-            .Property(u => u.TotalRating)
-            .HasPrecision(2, 1);
-        builder.Entity<User>()
-            .Property(u => u.FullName)
-            .HasComputedColumnSql("[FirstName] + ' ' + [LastName]", stored: true);
     }
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)

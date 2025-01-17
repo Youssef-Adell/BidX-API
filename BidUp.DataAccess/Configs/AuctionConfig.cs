@@ -33,7 +33,7 @@ public class AuctionConfig : IEntityTypeConfiguration<Auction>
               .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasMany(a => a.ProductImages)
-            .WithOne(i => i.Auction)
+            .WithOne()
             .OnDelete(DeleteBehavior.Cascade);
     }
 

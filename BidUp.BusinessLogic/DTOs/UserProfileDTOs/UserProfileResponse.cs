@@ -6,5 +6,5 @@ public class UserProfileResponse
     public required string FirstName { get; init; }
     public required string LastName { get; init; }
     public string? ProfilePictureUrl { get; init; }
-    public decimal TotalRating { get; init; }
+    public decimal AverageRating { get; init; }
 }

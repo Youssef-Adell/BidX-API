@@ -8,7 +8,7 @@ public interface IReviewsService
 {
     Task<AppResult<Page<ReviewResponse>>> GetUserReviewsReceived(int revieweeId, ReviewsQueryParams queryParams);
     Task<AppResult<MyReviewResponse>> GetReview(int reviewerId, int revieweeId);
-    Task<AppResult<MyReviewResponse>> AddReview(int reviewerId, int revieweeId, AddReviewRequest addReviewRequest);
-    Task<AppResult> UpdateReview(int reviewerId, int revieweeId, UpdateReviewRequest updateReviewRequest);
+    Task<AppResult<MyReviewResponse>> AddReview(int reviewerId, int revieweeId, AddReviewRequest request);
+    Task<AppResult> UpdateReview(int reviewerId, int revieweeId, UpdateReviewRequest request);
     Task<AppResult> DeleteReview(int reviewerId, int revieweeId);
 }

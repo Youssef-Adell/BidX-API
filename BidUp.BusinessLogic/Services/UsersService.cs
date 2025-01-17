@@ -27,7 +27,7 @@ public class UsersService : IUsersService
             FirstName = u.FirstName,
             LastName = u.LastName,
             ProfilePictureUrl = u.ProfilePictureUrl,
-            TotalRating = u.TotalRating
+            AverageRating = u.AverageRating
         })
         .AsNoTracking()
         .FirstOrDefaultAsync(u => u.Id == userId);

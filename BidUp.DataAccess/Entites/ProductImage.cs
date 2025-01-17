@@ -7,5 +7,4 @@ public class ProductImage
     public required string Url { get; set; }
 
     public int AuctionId { get; set; }
-    public Auction? Auction { get; set; }
 }

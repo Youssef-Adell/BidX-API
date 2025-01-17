@@ -70,7 +70,14 @@ public class MappingProfile : Profile
 
 
         #region Reviews
+        CreateMap<User, Reviewer>();
+        CreateMap<Review, ReviewResponse>();
+
         CreateMap<Review, MyReviewResponse>();
+
+        CreateMap<AddReviewRequest, Review>()
+            .ForMember(d => d.ReviewerId, o => o.MapFrom((_, _, _, context) => (int)context.Items["ReviewerId"]))
+            .ForMember(d => d.RevieweeId, o => o.MapFrom((_, _, _, context) => (int)context.Items["RevieweeId"]));
         #endregion
     }
 }
