@@ -157,7 +157,7 @@ builder.Services.AddScoped<ICloudService, CloudinaryCloudService>();
 builder.Services.AddScoped<IAuctionsService, AuctionsService>();
 builder.Services.AddScoped<IBidsService, BidsService>();
 builder.Services.AddScoped<IProfilesService, ProfilesService>();
-builder.Services.AddScoped<IChatService, ChatService>();
+builder.Services.AddScoped<IChatsService, ChatsService>();
 builder.Services.AddScoped<IReviewsService, ReviewsService>();
 
 

@@ -4,6 +4,7 @@ using BidUp.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BidUp.DataAccess.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250119095317_Change and ooptimize Chat and Message entities")]
+    partial class ChangeandooptimizeChatandMessageentities
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -176,11 +179,7 @@ namespace BidUp.DataAccess.Migrations
 
                     b.HasIndex("Participant1Id");
 
-                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("Participant1Id"), new[] { "Participant2Id", "LastMessageId" });
-
                     b.HasIndex("Participant2Id");
-
-                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("Participant2Id"), new[] { "Participant1Id", "LastMessageId" });
 
                     b.ToTable("Chat");
                 });
@@ -237,12 +236,7 @@ namespace BidUp.DataAccess.Migrations
 
                     b.HasIndex("ChatId", "RecipientId", "IsRead");
 
-                    b.ToTable("Message", t =>
-                        {
-                            t.HasTrigger("last_message_trigger");
-                        });
-
-                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                    b.ToTable("Message");
                 });
 
             modelBuilder.Entity("BidUp.DataAccess.Entites.ProductImage", b =>
@@ -613,7 +607,6 @@ namespace BidUp.DataAccess.Migrations
                     b.HasOne("BidUp.DataAccess.Entites.Chat", "Chat")
                         .WithMany("Messages")
                         .HasForeignKey("ChatId")
-                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.HasOne("BidUp.DataAccess.Entites.User", "Recipient")

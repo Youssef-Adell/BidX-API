@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using AutoMapper;
 using BidUp.BusinessLogic.DTOs.AuctionDTOs;
 using BidUp.BusinessLogic.DTOs.AuthDTOs;
@@ -69,11 +68,6 @@ public class MappingProfile : Profile
         #endregion
 
 
-        #region Chats
-        CreateMap<Message, MessageResponse>();
-        #endregion
-
-
         #region Reviews
         CreateMap<User, Reviewer>();
         CreateMap<Review, ReviewResponse>();
@@ -103,6 +97,42 @@ public class MappingProfile : Profile
         CreateMap<User, LoginResponse>()
             .ForMember(d => d.AccessToken, o => o.MapFrom((_, _, _, context) => (string)context.Items["AccessToken"]))
             .ForMember(d => d.User, o => o.MapFrom(s => s)); // Need to be specified explicitly otherwise the d.User will be null
-        #endregion    
+        #endregion
+
+
+        #region Chats
+        int? userId = null;
+        CreateMap<Chat, ChatDetailsResponse>()
+                    .ForMember(dest => dest.ParticipantId, opt => opt.MapFrom(src =>
+                        src.Participant1Id == userId ? src.Participant2!.Id : src.Participant1!.Id))
+                    .ForMember(dest => dest.ParticipantName, opt => opt.MapFrom(src =>
+                        src.Participant1Id == userId ? src.Participant2!.FullName : src.Participant1!.FullName))
+                    .ForMember(dest => dest.ParticipantProfilePictureUrl, opt => opt.MapFrom(src =>
+                        src.Participant1Id == userId ? src.Participant2!.ProfilePictureUrl : src.Participant1!.ProfilePictureUrl))
+                    .ForMember(dest => dest.IsParticipantOnline, opt => opt.MapFrom(src =>
+                        src.Participant1Id == userId ? src.Participant2!.IsOnline : src.Participant1!.IsOnline))
+                    .ForMember(dest => dest.LastMessage, opt => opt.MapFrom(src => src.LastMessage!.Content))
+                    .ForMember(dest => dest.UnreadMessagesCount, opt => opt.MapFrom(src =>
+                        src.Messages!.Count(m => m.RecipientId == userId && !m.IsRead)));
+        CreateMap<CreateChatRequest, Chat>()
+            .ForMember(d => d.Participant1Id, o => o.MapFrom((_, _, _, context) => (int)context.Items["Participant1Id"]))
+            .ForMember(d => d.Participant2Id, o => o.MapFrom(s => s.ParticipantId))
+            .ForMember(d => d.Participant2, o => o.MapFrom((_, _, _, context) => (User)context.Items["Participant2"]));
+
+        CreateMap<Chat, ChatSummeryResponse>()
+            .ForMember(d => d.ParticipantId, o => o.MapFrom((s, _, _, context) =>
+                s.Participant1Id == (int)context.Items["UserId"] ? s.Participant2Id : s.Participant1Id))
+            .ForMember(d => d.ParticipantName, o => o.MapFrom((s, _, _, context) =>
+                s.Participant1Id == (int)context.Items["UserId"] ? s.Participant2!.FullName : s.Participant1!.FullName))
+            .ForMember(d => d.ParticipantProfilePictureUrl, o => o.MapFrom((s, _, _, context) =>
+                s.Participant1Id == (int)context.Items["UserId"] ? s.Participant2!.ProfilePictureUrl : s.Participant1!.ProfilePictureUrl))
+            .ForMember(d => d.IsParticipantOnline, o => o.MapFrom((s, _, _, context) =>
+                s.Participant1Id == (int)context.Items["UserId"] ? s.Participant2!.IsOnline : s.Participant1!.IsOnline));
+        #endregion
+
+
+        #region Messages
+        CreateMap<Message, MessageResponse>();
+        #endregion
     }
 }

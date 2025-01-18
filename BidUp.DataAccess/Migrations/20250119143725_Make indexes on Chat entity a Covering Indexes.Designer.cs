@@ -4,6 +4,7 @@ using BidUp.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BidUp.DataAccess.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250119143725_Make indexes on Chat entity a Covering Indexes")]
+    partial class MakeindexesonChatentityaCoveringIndexes
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -237,12 +240,7 @@ namespace BidUp.DataAccess.Migrations
 
                     b.HasIndex("ChatId", "RecipientId", "IsRead");
 
-                    b.ToTable("Message", t =>
-                        {
-                            t.HasTrigger("last_message_trigger");
-                        });
-
-                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                    b.ToTable("Message");
                 });
 
             modelBuilder.Entity("BidUp.DataAccess.Entites.ProductImage", b =>
@@ -613,7 +611,6 @@ namespace BidUp.DataAccess.Migrations
                     b.HasOne("BidUp.DataAccess.Entites.Chat", "Chat")
                         .WithMany("Messages")
                         .HasForeignKey("ChatId")
-                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.HasOne("BidUp.DataAccess.Entites.User", "Recipient")

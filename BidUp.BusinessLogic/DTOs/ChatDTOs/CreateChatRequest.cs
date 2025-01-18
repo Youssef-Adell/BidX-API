@@ -2,8 +2,8 @@ using System.ComponentModel.DataAnnotations;
 
 namespace BidUp.BusinessLogic.DTOs.ChatDTOs;
 
-public class JoinChatRoomRequest
+public class CreateChatRequest
 {
     [Required]
-    public int ChatId { get; init; }
+    public int ParticipantId { get; init; }
 }

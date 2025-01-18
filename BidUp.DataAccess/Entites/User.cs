@@ -17,6 +17,4 @@ public class User : IdentityUser<int>
     public decimal AverageRating { get; set; }
 
     public string? RefreshToken { get; set; }
-
-    public ICollection<Chat>? Chats { get; set; }
 }

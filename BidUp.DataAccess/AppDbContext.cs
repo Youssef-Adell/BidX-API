@@ -16,7 +16,6 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<int>, int>
     public required DbSet<Auction> Auctions { get; set; }
     public required DbSet<Bid> Bids { get; set; }
     public required DbSet<Chat> Chats { get; set; }
-    public required DbSet<UserChat> UserChats { get; set; }
     public required DbSet<Message> Messages { get; set; }
     public required DbSet<Review> Reviews { get; set; }
 
@@ -24,11 +23,6 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<int>, int>
     {
         base.OnModelCreating(builder);
         builder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
-
-        builder.Entity<Chat>()
-            .HasMany(c => c.Users)
-            .WithMany(u => u.Chats)
-            .UsingEntity<UserChat>();
     }
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)

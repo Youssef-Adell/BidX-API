@@ -6,7 +6,6 @@ namespace BidUp.DataAccess.Configs;
 
 public class UserConfig : IEntityTypeConfiguration<User>
 {
-
     public void Configure(EntityTypeBuilder<User> builder)
     {
         builder.ToTable("User", "security")

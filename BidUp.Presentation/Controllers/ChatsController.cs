@@ -16,11 +16,11 @@ namespace BidUp.Presentation;
 [ProducesResponseType(StatusCodes.Status401Unauthorized)]
 public class ChatsController : ControllerBase
 {
-    private readonly IChatService chatService;
+    private readonly IChatsService chatsService;
 
-    public ChatsController(IChatService chatService)
+    public ChatsController(IChatsService chatsService)
     {
-        this.chatService = chatService;
+        this.chatsService = chatsService;
     }
 
 
@@ -33,35 +33,39 @@ public class ChatsController : ControllerBase
     {
         var userId = int.Parse(User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value!);
 
-        var response = await chatService.GetUserChats(userId, queryParams);
-
-        return Ok(response);
-    }
-
-
-    [HttpGet("{chatId}/messages")]
-    [ProducesResponseType(typeof(Page<MessageResponse>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetChatMessages(int chatId, [FromQuery] MessagesQueryParams queryParams)
-    {
-        var userId = int.Parse(User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value!);
-
-        var response = await chatService.GetChatMessages(userId, chatId, queryParams);
+        var response = await chatsService.GetUserChats(userId, queryParams);
 
         return Ok(response);
     }
 
 
     /// <summary>
-    /// Creates a new chat with a user or retrieves old chat if it exists
+    /// Creates a chat or retrieves it if exists.
     /// </summary>
-    [HttpPost("initiate/{receiverId}")]
+    [HttpPost]
     [ProducesResponseType(typeof(ChatSummeryResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> IntiateChat(int receiverId)
+    public async Task<IActionResult> CreateChatOrGetIfExist(CreateChatRequest request)
     {
         var senderId = int.Parse(User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value!);
 
-        var result = await chatService.IntiateChat(senderId, receiverId);
+        var result = await chatsService.CreateChatOrGetIfExist(senderId, request);
+
+        if (!result.Succeeded)
+            return NotFound(result.Error);
+
+        return Ok(result.Response);
+    }
+
+
+    [HttpGet("{chatId}/messages")]
+    [ProducesResponseType(typeof(Page<MessageResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetChatMessages(int chatId, [FromQuery] MessagesQueryParams queryParams)
+    {
+        var userId = int.Parse(User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value!);
+
+        var result = await chatsService.GetChatMessages(userId, chatId, queryParams);
 
         if (!result.Succeeded)
             return NotFound(result.Error);
