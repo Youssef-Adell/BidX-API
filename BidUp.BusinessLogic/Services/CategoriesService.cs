@@ -1,7 +1,6 @@
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
 using BidUp.BusinessLogic.DTOs.CategoryDTOs;
-using BidUp.BusinessLogic.DTOs.CloudDTOs;
 using BidUp.BusinessLogic.DTOs.CommonDTOs;
 using BidUp.BusinessLogic.Interfaces;
 using BidUp.DataAccess;

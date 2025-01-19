@@ -112,12 +112,12 @@ public class AuthService : IAuthService
                 ["Invalid email or password."]);
         }
 
-        if (!user.EmailConfirmed)
-        {
-            return AppResult<LoginResponse>.Failure(
-                ErrorCode.AUTH_EMAIL_NOT_CONFIRMED,
-                ["The email has not been confirmed."]);
-        }
+        // if (!user.EmailConfirmed)
+        // {
+        //     return AppResult<LoginResponse>.Failure(
+        //         ErrorCode.AUTH_EMAIL_NOT_CONFIRMED,
+        //         ["The email has not been confirmed."]);
+        // }
 
 
         user.AccessFailedCount = 0; // Reset failed attempts counter on successful login
