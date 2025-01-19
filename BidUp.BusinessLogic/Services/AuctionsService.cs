@@ -7,7 +7,6 @@ using BidUp.BusinessLogic.Interfaces;
 using BidUp.DataAccess;
 using BidUp.DataAccess.Entites;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 
 namespace BidUp.BusinessLogic.Services;
 
@@ -28,7 +27,7 @@ public class AuctionsService : IAuctionsService
     {
         // Build the query based on the parameters (Short circuit if a query param has no value)
         var auctionsQuery = appDbContext.Auctions
-            .Where(a => (queryParams.Search.IsNullOrEmpty() || a.ProductName.Contains(queryParams.Search!)) && // I didn't add and index for ProductName because this query is non-sargable so it cannot efficiently use indexes (https://stackoverflow.com/a/4268107, https://stackoverflow.com/a/799616) consider creating Full-Text index later (https://shorturl.at/COl2f)
+            .Where(a => (string.IsNullOrEmpty(queryParams.Search) || a.ProductName.Contains(queryParams.Search!)) && // I didn't add and index for ProductName because this query is non-sargable so it cannot efficiently use indexes (https://stackoverflow.com/a/4268107, https://stackoverflow.com/a/799616) consider creating Full-Text index later (https://shorturl.at/COl2f)
                         (queryParams.ProductCondition == null || a.ProductCondition == queryParams.ProductCondition) && // I didn't add an index for ProductCondition because it is a low selectivity column that has only 2 values (Used, New)
                         (queryParams.CategoryId == null || a.CategoryId == queryParams.CategoryId) &&
                         (queryParams.CityId == null || a.CityId == queryParams.CityId) &&

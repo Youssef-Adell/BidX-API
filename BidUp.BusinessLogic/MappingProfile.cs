@@ -19,7 +19,8 @@ public class MappingProfile : Profile
             .ForMember(d => d.CurrentPrice, o => o.MapFrom(s =>
                  s.Bids!.OrderByDescending(b => b.Amount)
                  .Select(b => (decimal?)b.Amount)
-                 .FirstOrDefault() ?? s.StartingPrice));
+                 .FirstOrDefault() ?? s.StartingPrice))
+            .AfterMap((s, d) => d.CurrentPrice = d.CurrentPrice == 0 ? s.StartingPrice : d.CurrentPrice); // To ensure that CurrentPrice calculated in case of mqpping with Map<>() not ProjectTo<>()
 
         CreateMap<Auction, AuctionUserHasBidOnResponse>()
             .ForMember(d => d.CurrentPrice, o => o.MapFrom(s =>
