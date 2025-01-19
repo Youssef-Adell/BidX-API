@@ -146,29 +146,32 @@ public class ChatsService : IChatsService
         return await appDbContext.Chats
             .Where(c => (c.Participant1Id == participant1Id && c.Participant2Id == participant2Id)
                 || (c.Participant1Id == participant2Id && c.Participant2Id == participant1Id))
-            .ProjectTo<ChatSummeryResponse>(mapper.ConfigurationProvider)
+            .ProjectTo<ChatSummeryResponse>(mapper.ConfigurationProvider, new { UserId = participant1Id })
             .AsNoTracking()
             .SingleOrDefaultAsync();
     }
 
     private async Task<AppResult<ChatSummeryResponse>> CreateChat(int callerId, CreateChatRequest request)
     {
+        if (callerId == request.ParticipantId)
+            return AppResult<ChatSummeryResponse>.Failure(ErrorCode.USER_INPUT_INVALID, ["Can't chat with yourself."]);
+
         var participant = await appDbContext.Users
             .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Id == request.ParticipantId);
 
-        if (participant is null)
+        if (participant == null)
             return AppResult<ChatSummeryResponse>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Participant not found."]);
 
         var chat = mapper.Map<CreateChatRequest, Chat>(request, o =>
         {
             o.Items["Participant1Id"] = callerId;
-            o.Items["Participant2"] = participant;
         });
 
         appDbContext.Chats.Add(chat);
         await appDbContext.SaveChangesAsync();
 
+        chat.Participant2 = participant;
         var response = mapper.Map<Chat, ChatSummeryResponse>(chat, o => o.Items["UserId"] = callerId);
         return AppResult<ChatSummeryResponse>.Success(response);
     }
