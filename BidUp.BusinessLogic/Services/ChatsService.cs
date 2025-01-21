@@ -44,17 +44,17 @@ public class ChatsService : IChatsService
         return new Page<ChatDetailsResponse>(userChats, queryParams.Page, queryParams.PageSize, totalCount);
     }
 
-    public async Task<AppResult<ChatSummeryResponse>> CreateChatOrGetIfExist(int callerId, CreateChatRequest request)
+    public async Task<Result<ChatSummeryResponse>> CreateChatOrGetIfExist(int callerId, CreateChatRequest request)
     {
         var existingChat = await GetChatIfExist(callerId, request.ParticipantId);
 
         if (existingChat is not null)
-            return AppResult<ChatSummeryResponse>.Success(existingChat);
+            return Result<ChatSummeryResponse>.Success(existingChat);
 
         return await CreateChat(callerId, request);
     }
 
-    public async Task<AppResult<Page<MessageResponse>>> GetChatMessages(int callerId, int chatId, MessagesQueryParams queryParams)
+    public async Task<Result<Page<MessageResponse>>> GetChatMessages(int callerId, int chatId, MessagesQueryParams queryParams)
     {
         // Build the query based on parameters
         var chatMessagesQuery = appDbContext.Messages
@@ -66,9 +66,9 @@ public class ChatsService : IChatsService
         {
             var chatExists = await appDbContext.Chats.AnyAsync(c => c.Participant1Id == callerId || c.Participant2Id == callerId);
             if (!chatExists)
-                return AppResult<Page<MessageResponse>>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Chat not found."]);
+                return Result<Page<MessageResponse>>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Chat not found."]);
 
-            return AppResult<Page<MessageResponse>>.Success(new Page<MessageResponse>([], queryParams.Page, queryParams.PageSize, totalCount));
+            return Result<Page<MessageResponse>>.Success(new Page<MessageResponse>([], queryParams.Page, queryParams.PageSize, totalCount));
         }
 
         // Get the list of messages with pagination and mapping
@@ -83,10 +83,10 @@ public class ChatsService : IChatsService
         await MarkReceivedMessagesAsRead(callerId, chatId);
 
         var page = new Page<MessageResponse>(chatMessages, queryParams.Page, queryParams.PageSize, totalCount);
-        return AppResult<Page<MessageResponse>>.Success(page);
+        return Result<Page<MessageResponse>>.Success(page);
     }
 
-    public async Task<AppResult<MessageResponse>> SendMessage(int senderId, SendMessageRequest request)
+    public async Task<Result<MessageResponse>> SendMessage(int senderId, SendMessageRequest request)
     {
         var chat = await appDbContext.Chats
             .Where(c => c.Id == request.ChatId && (c.Participant1Id == senderId || c.Participant2Id == senderId))
@@ -94,7 +94,7 @@ public class ChatsService : IChatsService
             .FirstOrDefaultAsync();
 
         if (chat is null)
-            return AppResult<MessageResponse>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Chat not found."]);
+            return Result<MessageResponse>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Chat not found."]);
 
         // Create and save the message
         var message = mapper.Map<SendMessageRequest, Message>(request, o =>
@@ -106,7 +106,7 @@ public class ChatsService : IChatsService
         await appDbContext.SaveChangesAsync();
 
         var response = mapper.Map<Message, MessageResponse>(message);
-        return AppResult<MessageResponse>.Success(response);
+        return Result<MessageResponse>.Success(response);
     }
 
     public async Task<IEnumerable<int>> ChangeUserStatus(int userId, bool isOnline)
@@ -151,17 +151,17 @@ public class ChatsService : IChatsService
             .SingleOrDefaultAsync();
     }
 
-    private async Task<AppResult<ChatSummeryResponse>> CreateChat(int callerId, CreateChatRequest request)
+    private async Task<Result<ChatSummeryResponse>> CreateChat(int callerId, CreateChatRequest request)
     {
         if (callerId == request.ParticipantId)
-            return AppResult<ChatSummeryResponse>.Failure(ErrorCode.USER_INPUT_INVALID, ["Can't chat with yourself."]);
+            return Result<ChatSummeryResponse>.Failure(ErrorCode.USER_INPUT_INVALID, ["Can't chat with yourself."]);
 
         var participant = await appDbContext.Users
             .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Id == request.ParticipantId);
 
         if (participant == null)
-            return AppResult<ChatSummeryResponse>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Participant not found."]);
+            return Result<ChatSummeryResponse>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Participant not found."]);
 
         var chat = mapper.Map<CreateChatRequest, Chat>(request, o =>
         {
@@ -173,6 +173,6 @@ public class ChatsService : IChatsService
 
         chat.Participant2 = participant;
         var response = mapper.Map<Chat, ChatSummeryResponse>(chat, o => o.Items["UserId"] = callerId);
-        return AppResult<ChatSummeryResponse>.Success(response);
+        return Result<ChatSummeryResponse>.Success(response);
     }
 }

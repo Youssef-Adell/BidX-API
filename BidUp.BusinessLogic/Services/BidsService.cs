@@ -21,7 +21,7 @@ public class BidsService : IBidsService
         this.mapper = mapper;
     }
 
-    public async Task<AppResult<Page<BidResponse>>> GetAuctionBids(int auctionId, BidsQueryParams queryParams)
+    public async Task<Result<Page<BidResponse>>> GetAuctionBids(int auctionId, BidsQueryParams queryParams)
     {
         // Build the query based on the parameters
         var auctionBidsQuery = appDbContext.Bids
@@ -35,9 +35,9 @@ public class BidsService : IBidsService
         {
             var auctionExists = await appDbContext.Auctions.AnyAsync(a => a.Id == auctionId);
             if (!auctionExists)
-                return AppResult<Page<BidResponse>>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Auction not found."]);
+                return Result<Page<BidResponse>>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Auction not found."]);
 
-            return AppResult<Page<BidResponse>>.Success(new([], queryParams.Page, queryParams.PageSize, totalCount));
+            return Result<Page<BidResponse>>.Success(new([], queryParams.Page, queryParams.PageSize, totalCount));
         }
 
         // Get the list of bids with pagination and mapping
@@ -52,11 +52,11 @@ public class BidsService : IBidsService
             .ToListAsync();
 
         var response = new Page<BidResponse>(auctionBids, queryParams.Page, queryParams.PageSize, totalCount);
-        return AppResult<Page<BidResponse>>.Success(response);
+        return Result<Page<BidResponse>>.Success(response);
     }
 
 
-    public async Task<AppResult<BidResponse>> GetAcceptedBid(int auctionId)
+    public async Task<Result<BidResponse>> GetAcceptedBid(int auctionId)
     {
         var acceptedBid = await appDbContext.Bids
             .Include(b => b.Bidder)
@@ -68,15 +68,15 @@ public class BidsService : IBidsService
         {
             var auctionExists = await appDbContext.Auctions.AnyAsync(a => a.Id == auctionId);
             if (!auctionExists)
-                return AppResult<BidResponse>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Auction not found."]);
+                return Result<BidResponse>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Auction not found."]);
 
-            return AppResult<BidResponse>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Auction has no accepted bid."]);
+            return Result<BidResponse>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Auction has no accepted bid."]);
         }
 
-        return AppResult<BidResponse>.Success(acceptedBid);
+        return Result<BidResponse>.Success(acceptedBid);
     }
 
-    public async Task<AppResult<BidResponse>> GetHighestBid(int auctionId)
+    public async Task<Result<BidResponse>> GetHighestBid(int auctionId)
     {
         var highestBid = await appDbContext.Bids
             .Include(b => b.Bidder)
@@ -89,19 +89,19 @@ public class BidsService : IBidsService
         {
             var auctionExists = await appDbContext.Auctions.AnyAsync(a => a.Id == auctionId);
             if (!auctionExists)
-                return AppResult<BidResponse>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Auction not found."]);
+                return Result<BidResponse>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Auction not found."]);
 
-            return AppResult<BidResponse>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Auction has no bids"]);
+            return Result<BidResponse>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Auction has no bids"]);
         }
 
-        return AppResult<BidResponse>.Success(highestBid);
+        return Result<BidResponse>.Success(highestBid);
     }
 
-    public async Task<AppResult<BidResponse>> PlaceBid(int bidderId, BidRequest request)
+    public async Task<Result<BidResponse>> PlaceBid(int bidderId, BidRequest request)
     {
         var validationResult = await ValidateBidPlacement(bidderId, request.AuctionId, request.Amount);
         if (!validationResult.Succeeded)
-            return AppResult<BidResponse>.Failure(validationResult.Error!);
+            return Result<BidResponse>.Failure(validationResult.Error!);
 
         // Create and save the bid
         var bid = mapper.Map<BidRequest, Bid>(request, o => o.Items["BidderId"] = bidderId);
@@ -111,10 +111,10 @@ public class BidsService : IBidsService
         await appDbContext.Entry(bid).Reference(b => b.Bidder).LoadAsync();
         var response = mapper.Map<Bid, BidResponse>(bid);
 
-        return AppResult<BidResponse>.Success(response);
+        return Result<BidResponse>.Success(response);
     }
 
-    public async Task<AppResult<BidResponse>> AcceptBid(int callerId, AcceptBidRequest request)
+    public async Task<Result<BidResponse>> AcceptBid(int callerId, AcceptBidRequest request)
     {
         var bid = await appDbContext.Bids
             .Include(b => b.Auction)
@@ -123,17 +123,17 @@ public class BidsService : IBidsService
 
         var validationResult = ValidateBidAcceptance(callerId, bid);
         if (!validationResult.Succeeded)
-            return AppResult<BidResponse>.Failure(validationResult.Error!);
+            return Result<BidResponse>.Failure(validationResult.Error!);
 
         AcceptBidAndEndAuction(bid!);
         await appDbContext.SaveChangesAsync();
 
         var response = mapper.Map<Bid, BidResponse>(bid!);
-        return AppResult<BidResponse>.Success(response);
+        return Result<BidResponse>.Success(response);
     }
 
 
-    private async Task<AppResult> ValidateBidPlacement(int bidderId, int auctionId, decimal bidAmount)
+    private async Task<Result> ValidateBidPlacement(int bidderId, int auctionId, decimal bidAmount)
     {
         // Load only the necessary auction information
         var auctionInfo = await appDbContext.Auctions
@@ -151,35 +151,35 @@ public class BidsService : IBidsService
             .SingleOrDefaultAsync(x => x.Id == auctionId);
 
         if (auctionInfo is null)
-            return AppResult.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Auction not found."]);
+            return Result.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Auction not found."]);
 
         if (auctionInfo.AuctioneerId == bidderId)
-            return AppResult.Failure(ErrorCode.BIDDING_NOT_ALLOWED, ["Auctioneer cannot bid on their own auction."]);
+            return Result.Failure(ErrorCode.BIDDING_NOT_ALLOWED, ["Auctioneer cannot bid on their own auction."]);
 
         if (auctionInfo.EndTime.CompareTo(DateTimeOffset.UtcNow) < 0)
-            return AppResult.Failure(ErrorCode.BIDDING_NOT_ALLOWED, ["Auction has ended."]);
+            return Result.Failure(ErrorCode.BIDDING_NOT_ALLOWED, ["Auction has ended."]);
 
         if (bidAmount <= auctionInfo.CurrentPrice)
-            return AppResult.Failure(ErrorCode.BIDDING_NOT_ALLOWED, ["Bid amount must be greater than the current price."]);
+            return Result.Failure(ErrorCode.BIDDING_NOT_ALLOWED, ["Bid amount must be greater than the current price."]);
 
         if (bidAmount - auctionInfo.CurrentPrice < auctionInfo.MinBidIncrement)
-            return AppResult.Failure(ErrorCode.BIDDING_NOT_ALLOWED, [$"Bid increment must be greater than or equal to {auctionInfo.MinBidIncrement}."]);
+            return Result.Failure(ErrorCode.BIDDING_NOT_ALLOWED, [$"Bid increment must be greater than or equal to {auctionInfo.MinBidIncrement}."]);
 
-        return AppResult.Success();
+        return Result.Success();
     }
 
-    private AppResult ValidateBidAcceptance(int callerId, Bid? bid)
+    private Result ValidateBidAcceptance(int callerId, Bid? bid)
     {
         if (bid is null)
-            return AppResult.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Bid not found."]);
+            return Result.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Bid not found."]);
 
         if (bid.Auction!.AuctioneerId != callerId)
-            return AppResult.Failure(ErrorCode.ACCEPTANCE_NOT_ALLOWED, ["Only the auction owner can accept this bid."]);
+            return Result.Failure(ErrorCode.ACCEPTANCE_NOT_ALLOWED, ["Only the auction owner can accept this bid."]);
 
         if (!bid.Auction.IsActive)
-            return AppResult.Failure(ErrorCode.ACCEPTANCE_NOT_ALLOWED, ["Auction has ended. Acceptance is no longer allowed."]);
+            return Result.Failure(ErrorCode.ACCEPTANCE_NOT_ALLOWED, ["Auction has ended. Acceptance is no longer allowed."]);
 
-        return AppResult.Success();
+        return Result.Success();
     }
 
     private void AcceptBidAndEndAuction(Bid bid)

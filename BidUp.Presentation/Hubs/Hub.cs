@@ -8,12 +8,12 @@ using Microsoft.AspNetCore.SignalR;
 
 namespace BidUp.Presentation.Hubs;
 
-public class AppHub : Hub<IAppHubClient>
+public class Hub : Hub<IHubClient>
 {
     private readonly IBidsService bidsService;
     private readonly IChatsService chatsService;
 
-    public AppHub(IBidsService bidsService, IChatsService chatsService)
+    public Hub(IBidsService bidsService, IChatsService chatsService)
     {
         this.bidsService = bidsService;
         this.chatsService = chatsService;

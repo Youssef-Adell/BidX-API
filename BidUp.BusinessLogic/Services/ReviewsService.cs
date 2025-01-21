@@ -22,7 +22,7 @@ public class ReviewsService : IReviewsService
     }
 
 
-    public async Task<AppResult<Page<ReviewResponse>>> GetUserReviewsReceived(int revieweeId, ReviewsQueryParams queryParams)
+    public async Task<Result<Page<ReviewResponse>>> GetUserReviewsReceived(int revieweeId, ReviewsQueryParams queryParams)
     {
         var userReviewsQuery = appDbContext.Reviews
             .Where(r => r.RevieweeId == revieweeId)
@@ -33,9 +33,9 @@ public class ReviewsService : IReviewsService
         {
             var revieweeExists = await appDbContext.Users.AnyAsync(u => u.Id == revieweeId);
             if (!revieweeExists)
-                return AppResult<Page<ReviewResponse>>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["User not found."]);
+                return Result<Page<ReviewResponse>>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["User not found."]);
 
-            return AppResult<Page<ReviewResponse>>.Success(new Page<ReviewResponse>([], queryParams.Page, queryParams.PageSize, totalCount));
+            return Result<Page<ReviewResponse>>.Success(new Page<ReviewResponse>([], queryParams.Page, queryParams.PageSize, totalCount));
         }
 
         var userReviews = await userReviewsQuery
@@ -49,10 +49,10 @@ public class ReviewsService : IReviewsService
             .ToListAsync();
 
         var response = new Page<ReviewResponse>(userReviews, queryParams.Page, queryParams.PageSize, totalCount);
-        return AppResult<Page<ReviewResponse>>.Success(response);
+        return Result<Page<ReviewResponse>>.Success(response);
     }
 
-    public async Task<AppResult<MyReviewResponse>> GetReview(int reviewerId, int revieweeId)
+    public async Task<Result<MyReviewResponse>> GetReview(int reviewerId, int revieweeId)
     {
         var review = await appDbContext.Reviews
             .Where(r => r.ReviewerId == reviewerId && r.RevieweeId == revieweeId)
@@ -64,19 +64,19 @@ public class ReviewsService : IReviewsService
         {
             var revieweeExists = await appDbContext.Users.AnyAsync(u => u.Id == revieweeId);
             if (!revieweeExists)
-                return AppResult<MyReviewResponse>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["User not found."]);
+                return Result<MyReviewResponse>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["User not found."]);
 
-            return AppResult<MyReviewResponse>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["You have not reviewed this user before."]);
+            return Result<MyReviewResponse>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["You have not reviewed this user before."]);
         }
 
-        return AppResult<MyReviewResponse>.Success(review);
+        return Result<MyReviewResponse>.Success(review);
     }
 
-    public async Task<AppResult<MyReviewResponse>> AddReview(int reviewerId, int revieweeId, AddReviewRequest request)
+    public async Task<Result<MyReviewResponse>> AddReview(int reviewerId, int revieweeId, AddReviewRequest request)
     {
         var validationResult = await ValidateReviewEligibility(reviewerId, revieweeId);
         if (!validationResult.Succeeded)
-            return AppResult<MyReviewResponse>.Failure(validationResult.Error!);
+            return Result<MyReviewResponse>.Failure(validationResult.Error!);
 
         // Create and save the review
         var review = mapper.Map<AddReviewRequest, Review>(request, o =>
@@ -88,10 +88,10 @@ public class ReviewsService : IReviewsService
         await appDbContext.SaveChangesAsync();
 
         var response = mapper.Map<Review, MyReviewResponse>(review);
-        return AppResult<MyReviewResponse>.Success(response);
+        return Result<MyReviewResponse>.Success(response);
     }
 
-    public async Task<AppResult> UpdateReview(int reviewerId, int revieweeId, UpdateReviewRequest request)
+    public async Task<Result> UpdateReview(int reviewerId, int revieweeId, UpdateReviewRequest request)
     {
         var noOfRowsAffected = await appDbContext.Reviews
             .Where(r => r.RevieweeId == revieweeId && r.ReviewerId == reviewerId)
@@ -104,15 +104,15 @@ public class ReviewsService : IReviewsService
         {
             var revieweeExists = await appDbContext.Users.AnyAsync(u => u.Id == revieweeId);
             if (!revieweeExists)
-                return AppResult.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["User not found."]);
+                return Result.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["User not found."]);
 
-            return AppResult.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["You have not reviewed this user before."]);
+            return Result.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["You have not reviewed this user before."]);
         }
 
-        return AppResult.Success();
+        return Result.Success();
     }
 
-    public async Task<AppResult> DeleteReview(int reviewerId, int revieweeId)
+    public async Task<Result> DeleteReview(int reviewerId, int revieweeId)
     {
         var noOfRowsAffected = await appDbContext.Reviews
             .Where(r => r.RevieweeId == revieweeId && r.ReviewerId == reviewerId)
@@ -122,16 +122,16 @@ public class ReviewsService : IReviewsService
         {
             var revieweeExists = await appDbContext.Users.AnyAsync(u => u.Id == revieweeId);
             if (!revieweeExists)
-                return AppResult.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["User not found."]);
+                return Result.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["User not found."]);
 
-            return AppResult.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["You have not reviewed this user before."]);
+            return Result.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["You have not reviewed this user before."]);
         }
 
-        return AppResult.Success();
+        return Result.Success();
     }
 
 
-    private async Task<AppResult> ValidateReviewEligibility(int reviewerId, int revieweeId)
+    private async Task<Result> ValidateReviewEligibility(int reviewerId, int revieweeId)
     {
         var revieweeInfo = await appDbContext.Users
             .Where(u => u.Id == revieweeId)
@@ -146,14 +146,14 @@ public class ReviewsService : IReviewsService
             .FirstOrDefaultAsync();
 
         if (revieweeInfo == null)
-            return AppResult.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["User not found."]);
+            return Result.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["User not found."]);
 
         if (!revieweeInfo.HasDealtWithReviewer)
-            return AppResult.Failure(ErrorCode.REVIEWING_NOW_ALLOWED, ["You cannot review a user you have not dealt with before."]);
+            return Result.Failure(ErrorCode.REVIEWING_NOW_ALLOWED, ["You cannot review a user you have not dealt with before."]);
 
         if (revieweeInfo.HasReviewedBefore)
-            return AppResult.Failure(ErrorCode.REVIEW_ALREADY_EXISTS, ["You cannot review a user more than once."]);
+            return Result.Failure(ErrorCode.REVIEW_ALREADY_EXISTS, ["You cannot review a user more than once."]);
 
-        return AppResult.Success();
+        return Result.Success();
     }
 }

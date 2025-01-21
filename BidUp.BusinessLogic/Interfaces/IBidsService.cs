@@ -6,9 +6,9 @@ namespace BidUp.BusinessLogic.Interfaces;
 
 public interface IBidsService
 {
-    Task<AppResult<Page<BidResponse>>> GetAuctionBids(int auctionId, BidsQueryParams queryParams);
-    Task<AppResult<BidResponse>> GetAcceptedBid(int auctionId);
-    Task<AppResult<BidResponse>> GetHighestBid(int auctionId);
-    Task<AppResult<BidResponse>> PlaceBid(int bidderId, BidRequest request);
-    Task<AppResult<BidResponse>> AcceptBid(int callerId, AcceptBidRequest request);
+    Task<Result<Page<BidResponse>>> GetAuctionBids(int auctionId, BidsQueryParams queryParams);
+    Task<Result<BidResponse>> GetAcceptedBid(int auctionId);
+    Task<Result<BidResponse>> GetHighestBid(int auctionId);
+    Task<Result<BidResponse>> PlaceBid(int bidderId, BidRequest request);
+    Task<Result<BidResponse>> AcceptBid(int callerId, AcceptBidRequest request);
 }

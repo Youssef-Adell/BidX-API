@@ -5,7 +5,7 @@ namespace BidUp.BusinessLogic.Interfaces;
 
 public interface IProfilesService
 {
-    Task<AppResult<ProfileResponse>> GetProfile(int userId);
+    Task<Result<ProfileResponse>> GetProfile(int userId);
     Task UpdateProfile(int userId, ProfileUpdateRequest request);
-    Task<AppResult<UpdatedProfilePictureResponse>> UpdateProfilePicture(int userId, Stream profilePicture);
+    Task<Result<UpdatedProfilePictureResponse>> UpdateProfilePicture(int userId, Stream profilePicture);
 }

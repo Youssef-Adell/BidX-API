@@ -22,7 +22,7 @@ public class ProfilesService : IProfilesService
     }
 
 
-    public async Task<AppResult<ProfileResponse>> GetProfile(int userId)
+    public async Task<Result<ProfileResponse>> GetProfile(int userId)
     {
         var userProfile = await appDbContext.Users
         .ProjectTo<ProfileResponse>(mapper.ConfigurationProvider)
@@ -30,9 +30,9 @@ public class ProfilesService : IProfilesService
         .SingleOrDefaultAsync(u => u.Id == userId);
 
         if (userProfile is null)
-            return AppResult<ProfileResponse>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["User not found."]);
+            return Result<ProfileResponse>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["User not found."]);
 
-        return AppResult<ProfileResponse>.Success(userProfile);
+        return Result<ProfileResponse>.Success(userProfile);
     }
 
     public async Task UpdateProfile(int userId, ProfileUpdateRequest request)
@@ -44,12 +44,12 @@ public class ProfilesService : IProfilesService
                       .SetProperty(u => u.LastName, request.LastName));
     }
 
-    public async Task<AppResult<UpdatedProfilePictureResponse>> UpdateProfilePicture(int userId, Stream profilePicture)
+    public async Task<Result<UpdatedProfilePictureResponse>> UpdateProfilePicture(int userId, Stream profilePicture)
     {
         var uploadResult = await cloudService.UploadThumbnail(profilePicture);
 
         if (!uploadResult.Succeeded)
-            return AppResult<UpdatedProfilePictureResponse>.Failure(uploadResult.Error!);
+            return Result<UpdatedProfilePictureResponse>.Failure(uploadResult.Error!);
 
         var profilePictureUrl = uploadResult.Response!.FileUrl;
 
@@ -58,6 +58,6 @@ public class ProfilesService : IProfilesService
           .ExecuteUpdateAsync(setters => setters
               .SetProperty(u => u.ProfilePictureUrl, profilePictureUrl));
 
-        return AppResult<UpdatedProfilePictureResponse>.Success(new() { ProfilePictureUrl = profilePictureUrl });
+        return Result<UpdatedProfilePictureResponse>.Success(new() { ProfilePictureUrl = profilePictureUrl });
     }
 }

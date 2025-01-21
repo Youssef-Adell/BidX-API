@@ -8,6 +8,7 @@ using BidUp.Presentation.Hubs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using Hub = BidUp.Presentation.Hubs.Hub;
 
 
 namespace BidUp.Presentation.Controllers;
@@ -19,9 +20,9 @@ namespace BidUp.Presentation.Controllers;
 public class AuctionsController : ControllerBase
 {
     private readonly IAuctionsService auctionsService;
-    private readonly IHubContext<AppHub, IAppHubClient> hubContext;
+    private readonly IHubContext<Hub, IHubClient> hubContext;
 
-    public AuctionsController(IAuctionsService auctionsService, IHubContext<AppHub, IAppHubClient> hubContext)
+    public AuctionsController(IAuctionsService auctionsService, IHubContext<Hub, IHubClient> hubContext)
     {
         this.auctionsService = auctionsService;
         this.hubContext = hubContext;

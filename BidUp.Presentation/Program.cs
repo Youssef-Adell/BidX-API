@@ -202,6 +202,6 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-app.MapHub<AppHub>("/appHub");
+app.MapHub<Hub>("/appHub");
 
 app.Run();
