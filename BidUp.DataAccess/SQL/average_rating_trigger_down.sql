@@ -1,0 +1,1 @@
+DROP TRIGGER [dbo].[average_rating_trigger];
