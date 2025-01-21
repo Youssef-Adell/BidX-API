@@ -26,14 +26,14 @@ public class AuthController : ControllerBase
     [HttpPost("register")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<IActionResult> Register(RegisterRequest registerRequest)
+    public async Task<IActionResult> Register(RegisterRequest request)
     {
-        var result = await authService.Register(registerRequest);
+        var result = await authService.Register(request);
 
         if (!result.Succeeded)
             return UnprocessableEntity(result.Error);
 
-        return await SendConfirmationEmail(new() { Email = registerRequest.Email });
+        return await SendConfirmationEmail(new() { Email = request.Email });
     }
 
     /*
@@ -42,11 +42,11 @@ public class AuthController : ControllerBase
     */
     [HttpPost("resend-confirmation-email")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    public async Task<IActionResult> SendConfirmationEmail(SendConfirmationEmailRequest sendConfirmationEmailRequest)
+    public async Task<IActionResult> SendConfirmationEmail(SendConfirmationEmailRequest request)
     {
         var urlOfConfirmationEndpoint = linkGenerator.GetUriByAction(HttpContext, nameof(ConfirmEmail));
 
-        await authService.SendConfirmationEmail(sendConfirmationEmailRequest.Email, urlOfConfirmationEndpoint!);
+        await authService.SendConfirmationEmail(request.Email, urlOfConfirmationEndpoint!);
 
         return NoContent();
     }
@@ -72,9 +72,9 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> Login(LoginRequest loginRequest)
+    public async Task<IActionResult> Login(LoginRequest request)
     {
-        var result = await authService.Login(loginRequest);
+        var result = await authService.Login(request);
 
         if (!result.Succeeded)
             return Unauthorized(result.Error);
@@ -93,9 +93,9 @@ public class AuthController : ControllerBase
     [HttpPost("refresh")]
     [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> RefreshToken(RefreshRequest? refreshRequest)
+    public async Task<IActionResult> RefreshToken(RefreshRequest? request)
     {
-        var refreshToken = IsBrowserClient() ? Request.Cookies[NameOfRefreshTokenCookie] : refreshRequest?.RefreshToken;
+        var refreshToken = IsBrowserClient() ? Request.Cookies[NameOfRefreshTokenCookie] : request?.RefreshToken;
 
         var result = await authService.Refresh(refreshToken);
         if (!result.Succeeded)
@@ -117,9 +117,9 @@ public class AuthController : ControllerBase
     */
     [HttpPost("forgot-password")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    public async Task<IActionResult> ForgotPassword(ForgotPasswordRequest forgotPasswordRequest)
+    public async Task<IActionResult> ForgotPassword(ForgotPasswordRequest request)
     {
-        await authService.SendPasswordResetEmail(forgotPasswordRequest.Email, linkGenerator.GetUriByAction(HttpContext, nameof(GetPasswordResetPage))!);
+        await authService.SendPasswordResetEmail(request.Email, linkGenerator.GetUriByAction(HttpContext, nameof(GetPasswordResetPage))!);
 
         return NoContent();
     }
@@ -137,9 +137,9 @@ public class AuthController : ControllerBase
 
     [HttpPost("reset-password")]
     [ApiExplorerSettings(IgnoreApi = true)]
-    public async Task<IActionResult> ResetPassword(ResetPasswordRequest resetPasswordRequest)
+    public async Task<IActionResult> ResetPassword(ResetPasswordRequest request)
     {
-        var result = await authService.ResetPassword(resetPasswordRequest);
+        var result = await authService.ResetPassword(request);
 
         if (!result.Succeeded)
             return UnprocessableEntity(result.Error);
@@ -152,11 +152,11 @@ public class AuthController : ControllerBase
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status422UnprocessableEntity)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> ChangePassword(ChangePasswordRequest changePasswordRequest)
+    public async Task<IActionResult> ChangePassword(ChangePasswordRequest request)
     {
         var userId = int.Parse(User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value!);
 
-        var result = await authService.ChangePassword(userId, changePasswordRequest);
+        var result = await authService.ChangePassword(userId, request);
 
         if (!result.Succeeded)
             return UnprocessableEntity(result.Error);

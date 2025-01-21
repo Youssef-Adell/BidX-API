@@ -1,6 +1,6 @@
 using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using BidUp.BusinessLogic.DTOs.CategoryDTOs;
-using BidUp.BusinessLogic.DTOs.CloudDTOs;
 using BidUp.BusinessLogic.DTOs.CommonDTOs;
 using BidUp.BusinessLogic.Interfaces;
 using BidUp.DataAccess;
@@ -26,81 +26,66 @@ public class CategoriesService : ICategoriesService
     {
         var categories = await appDbContext.Categories
             .Where(c => !c.IsDeleted)
+            .ProjectTo<CategoryResponse>(mapper.ConfigurationProvider)
             .AsNoTracking()
             .ToListAsync();
 
-        var response = mapper.Map<IEnumerable<CategoryResponse>>(categories);
-
-        return response;
+        return categories;
     }
 
-    public async Task<AppResult<CategoryResponse>> GetCategory(int id)
+    public async Task<Result<CategoryResponse>> GetCategory(int id)
     {
         var category = await appDbContext.Categories
+            .Where(c => c.Id == id && !c.IsDeleted)
+            .ProjectTo<CategoryResponse>(mapper.ConfigurationProvider)
             .AsNoTracking()
-            .FirstOrDefaultAsync(c => c.Id == id && !c.IsDeleted);
+            .SingleOrDefaultAsync();
 
         if (category is null)
-            return AppResult<CategoryResponse>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Category not found."]);
+            return Result<CategoryResponse>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Category not found."]);
 
-        var response = mapper.Map<CategoryResponse>(category);
-
-        return AppResult<CategoryResponse>.Success(response);
+        return Result<CategoryResponse>.Success(category);
     }
 
-    public async Task<AppResult<CategoryResponse>> AddCategory(AddCategoryRequest addCategoryRequest, Stream categoryIcon)
+    public async Task<Result<CategoryResponse>> AddCategory(AddCategoryRequest request, Stream categoryIcon)
     {
         var uploadResult = await cloudService.UploadSvgIcon(categoryIcon);
-
         if (!uploadResult.Succeeded)
-            return AppResult<CategoryResponse>.Failure(uploadResult.Error!.ErrorCode, uploadResult.Error.ErrorMessages);
+            return Result<CategoryResponse>.Failure(uploadResult.Error!);
 
-        var category = new Category
-        {
-            Name = addCategoryRequest.Name,
-            IconUrl = uploadResult.Response!.FileUrl
-        };
-
+        var category = mapper.Map<AddCategoryRequest, Category>(request, o => o.Items["IconUrl"] = uploadResult.Response!.FileUrl);
         appDbContext.Add(category);
         await appDbContext.SaveChangesAsync();
 
-        var response = mapper.Map<CategoryResponse>(category);
-
-        return AppResult<CategoryResponse>.Success(response);
+        var response = mapper.Map<Category, CategoryResponse>(category);
+        return Result<CategoryResponse>.Success(response);
     }
 
-    public async Task<AppResult> UpdateCategory(int id, UpdateCategoryRequest updateCategoryRequest, Stream? newCategoryIcon)
+    public async Task<Result> UpdateCategory(int id, UpdateCategoryRequest request, Stream? newCategoryIcon)
     {
-        int noOfRowsAffected;
-
+        string? iconUrl = null;
         if (newCategoryIcon is not null)
         {
             var uploadResult = await cloudService.UploadSvgIcon(newCategoryIcon);
-
             if (!uploadResult.Succeeded)
-                return AppResult.Failure(uploadResult.Error!.ErrorCode, uploadResult.Error.ErrorMessages);
+                return Result.Failure(uploadResult.Error!);
 
-            noOfRowsAffected = await appDbContext.Categories
-                .Where(c => c.Id == id && !c.IsDeleted)
-                .ExecuteUpdateAsync(setters => setters
-                    .SetProperty(c => c.Name, updateCategoryRequest.Name)
-                    .SetProperty(c => c.IconUrl, uploadResult.Response!.FileUrl));
+            iconUrl = uploadResult.Response!.FileUrl;
         }
-        else
-        {
-            noOfRowsAffected = await appDbContext.Categories
-                .Where(c => c.Id == id && !c.IsDeleted)
-                .ExecuteUpdateAsync(setters => setters
-                    .SetProperty(c => c.Name, updateCategoryRequest.Name));
-        }
+
+        var noOfRowsAffected = await appDbContext.Categories
+            .Where(c => c.Id == id && !c.IsDeleted)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(c => c.Name, request.Name)
+                .SetProperty(c => c.IconUrl, c => iconUrl ?? c.IconUrl));
 
         if (noOfRowsAffected <= 0)
-            return AppResult.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Category not found."]);
+            return Result.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Category not found."]);
 
-        return AppResult.Success();
+        return Result.Success();
     }
 
-    public async Task<AppResult> DeleteCategory(int id)
+    public async Task<Result> DeleteCategory(int id)
     {
         var noOfRowsAffected = await appDbContext.Categories
             .Where(c => c.Id == id && !c.IsDeleted)
@@ -108,8 +93,8 @@ public class CategoriesService : ICategoriesService
                 .SetProperty(c => c.IsDeleted, true)); // Soft delete
 
         if (noOfRowsAffected <= 0)
-            return AppResult.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Category not found."]);
+            return Result.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Category not found."]);
 
-        return AppResult.Success();
+        return Result.Success();
     }
 }

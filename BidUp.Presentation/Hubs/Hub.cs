@@ -1,8 +1,6 @@
-using System.Security.Claims;
 using BidUp.BusinessLogic.DTOs.AuctionDTOs;
 using BidUp.BusinessLogic.DTOs.BidDTOs;
 using BidUp.BusinessLogic.DTOs.ChatDTOs;
-using BidUp.BusinessLogic.DTOs.CommonDTOs;
 using BidUp.BusinessLogic.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
@@ -10,31 +8,23 @@ using Microsoft.AspNetCore.SignalR;
 
 namespace BidUp.Presentation.Hubs;
 
-public class AppHub : Hub<IAppHubClient>
+public class Hub : Hub<IHubClient>
 {
-    private readonly IBiddingService biddingService;
-    private readonly IChatService chatService;
+    private readonly IBidsService bidsService;
+    private readonly IChatsService chatsService;
 
-    public AppHub(IBiddingService biddingService, IChatService chatService)
+    public Hub(IBidsService bidsService, IChatsService chatsService)
     {
-        this.biddingService = biddingService;
-        this.chatService = chatService;
+        this.bidsService = bidsService;
+        this.chatsService = chatsService;
     }
 
     public override async Task OnConnectedAsync()
     {
         if (int.TryParse(Context.UserIdentifier, out int userId))
         {
-            var hasUnseenMessages = await chatService.HasUnseenMessages(userId);
-
-            if (hasUnseenMessages)
-                await Clients.Caller.MessageReceivedNotification();
-
-            var chatIdsToNotify = await chatService.ChangeUserStatus(userId, isOnline: true);
-
-            var groupNames = chatIdsToNotify.Select(chatId => $"CHAT#{chatId}");
-
-            await Clients.Groups(groupNames).UserStatusChanged(new() { UserId = userId, IsOnline = true });
+            await NotifyUserIfHasUnreadMessages(userId);
+            await NotifyChatParticipantsWithUserStatus(userId, isOnline: true);
         }
 
         await base.OnConnectedAsync();
@@ -44,11 +34,7 @@ public class AppHub : Hub<IAppHubClient>
     {
         if (int.TryParse(Context.UserIdentifier, out int userId))
         {
-            var chatIdsToNotify = await chatService.ChangeUserStatus(userId, isOnline: false);
-
-            var groupNames = chatIdsToNotify.Select(chatId => $"CHAT#{chatId}");
-
-            await Clients.Groups(groupNames).UserStatusChanged(new() { UserId = userId, IsOnline = false });
+            await NotifyChatParticipantsWithUserStatus(userId, isOnline: false);
         }
 
         await base.OnDisconnectedAsync(exception);
@@ -56,11 +42,11 @@ public class AppHub : Hub<IAppHubClient>
 
 
     [Authorize]
-    public async Task SendMessage(MessageRequest messageRequest)
+    public async Task SendMessage(SendMessageRequest request)
     {
         var userId = int.Parse(Context.UserIdentifier!);
 
-        var result = await chatService.SendMessage(userId, messageRequest);
+        var result = await chatsService.SendMessage(userId, request);
 
         if (!result.Succeeded)
         {
@@ -72,43 +58,33 @@ public class AppHub : Hub<IAppHubClient>
         var groupName = $"CHAT#{createdMessage.ChatId}";
 
         await Clients.Group(groupName).MessageReceived(createdMessage);
-        await Clients.User($"{createdMessage.ReceiverId}").MessageReceivedNotification();
+        await Clients.User($"{createdMessage.RecipientId}").MessageReceivedNotification();
     }
 
     // The client must call this method when the chat page loaded to be able to receive messages updates in realtime
     [Authorize]
-    public async Task JoinChatRoom(JoinChatRoomRequest joinChatRoomRequest)
+    public async Task JoinChatRoom(JoinChatRoomRequest request)
     {
-        var userId = int.Parse(Context.UserIdentifier!);
-
-        var result = await chatService.MarkReceivedMessagesAsSeen(userId, joinChatRoomRequest.ChatId);
-
-        if (!result.Succeeded)
-        {
-            await Clients.Caller.ErrorOccurred(result.Error!);
-            return;
-        }
-
-        var groupName = $"CHAT#{joinChatRoomRequest.ChatId}";
+        var groupName = $"CHAT#{request.ChatId}";
 
         await Clients.Group(groupName).MessagesSeen(); // If the other user is currently in the chat page he will be notified that his messages seen
         await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
     }
 
     // The client must call this method when the chat page loaded is about to be closed to stop receiving unnecessary messages updates
-    public async Task LeaveChatRoom(LeaveChatRoomRequest leaveChatRoomRequest)
+    public async Task LeaveChatRoom(LeaveChatRoomRequest request)
     {
-        var groupName = $"CHAT#{leaveChatRoomRequest.ChatId}";
+        var groupName = $"CHAT#{request.ChatId}";
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupName);
     }
 
 
     [Authorize]
-    public async Task BidUp(BidRequest bidRequest)
+    public async Task PlaceBid(BidRequest request)
     {
         var userId = int.Parse(Context.UserIdentifier!);
 
-        var result = await biddingService.BidUp(userId, bidRequest);
+        var result = await bidsService.PlaceBid(userId, request);
 
         if (!result.Succeeded)
         {
@@ -124,11 +100,11 @@ public class AppHub : Hub<IAppHubClient>
     }
 
     [Authorize]
-    public async Task AcceptBid(AcceptBidRequest acceptBidRequest)
+    public async Task AcceptBid(AcceptBidRequest request)
     {
         var userId = int.Parse(Context.UserIdentifier!);
 
-        var result = await biddingService.AcceptBid(userId, acceptBidRequest);
+        var result = await bidsService.AcceptBid(userId, request);
 
         if (!result.Succeeded)
         {
@@ -144,15 +120,15 @@ public class AppHub : Hub<IAppHubClient>
     }
 
     // The client must call this method when the auction page loads to be able to receive bidding updates in realtime
-    public async Task JoinAuctionRoom(JoinAuctionRoomRequest joinAuctionRoomRequest)
+    public async Task JoinAuctionRoom(JoinAuctionRoomRequest request)
     {
-        await Groups.AddToGroupAsync(Context.ConnectionId, joinAuctionRoomRequest.AuctionId.ToString());
+        await Groups.AddToGroupAsync(Context.ConnectionId, request.AuctionId.ToString());
     }
 
     // The client must call this method when the auction page is about to be closed to stop receiving unnecessary bidding updates
-    public async Task LeaveAuctionRoom(LeaveAuctionRoomRequest leaveAuctionRoomRequest)
+    public async Task LeaveAuctionRoom(LeaveAuctionRoomRequest request)
     {
-        await Groups.RemoveFromGroupAsync(Context.ConnectionId, leaveAuctionRoomRequest.AuctionId.ToString());
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, request.AuctionId.ToString());
     }
 
 
@@ -166,5 +142,23 @@ public class AppHub : Hub<IAppHubClient>
     public async Task LeaveFeedRoom()
     {
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, "FEED");
+    }
+
+
+    private async Task NotifyUserIfHasUnreadMessages(int userId)
+    {
+        var hasUnreadMessages = await chatsService.HasUnreadMessages(userId);
+
+        if (hasUnreadMessages)
+            await Clients.Caller.MessageReceivedNotification();
+    }
+
+    private async Task NotifyChatParticipantsWithUserStatus(int userId, bool isOnline)
+    {
+        var chatIdsToNotify = await chatsService.ChangeUserStatus(userId, isOnline: true);
+
+        var groupNames = chatIdsToNotify.Select(chatId => $"CHAT#{chatId}");
+
+        await Clients.Groups(groupNames).UserStatusChanged(new() { UserId = userId, IsOnline = isOnline });
     }
 }

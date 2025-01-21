@@ -1,8 +1,8 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace BidUp.BusinessLogic.DTOs.UserProfileDTOs;
+namespace BidUp.BusinessLogic.DTOs.ProfileDTOs;
 
-public class UserProfileUpdateRequest
+public class ProfileUpdateRequest
 {
     [Required]
     [StringLength(50, MinimumLength = 3)]

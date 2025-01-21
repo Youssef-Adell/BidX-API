@@ -5,7 +5,7 @@ using BidUp.BusinessLogic.DTOs.CommonDTOs;
 
 namespace BidUp.Presentation.Hubs;
 
-public interface IAppHubClient
+public interface IHubClient
 {
     Task BidCreated(BidResponse createdBid); // Triggerd only for clients who currently in a specific auction room
     Task BidAccepted(BidResponse acceptedBid); // Triggerd only for clients who currently in a specific auction room

@@ -1,5 +1,4 @@
 using System.Net;
-using System.Text;
 using System.Xml.Linq;
 using BidUp.BusinessLogic.DTOs.CloudDTOs;
 using BidUp.BusinessLogic.DTOs.CommonDTOs;
@@ -53,44 +52,44 @@ public class CloudinaryCloudService : ICloudService
         }
     }
 
-    public async Task<AppResult<UploadResponse>> UploadSvgIcon(Stream icon)
+    public async Task<Result<UploadResponse>> UploadSvgIcon(Stream icon)
     {
         var validationResult = ValidateIcon(icon);
 
         if (!validationResult.Succeeded)
-            return AppResult<UploadResponse>.Failure(validationResult.Error!.ErrorCode, validationResult.Error.ErrorMessages);
+            return Result<UploadResponse>.Failure(validationResult.Error!);
 
         var response = await UploadIcon(icon);
 
-        return AppResult<UploadResponse>.Success(response);
+        return Result<UploadResponse>.Success(response);
     }
 
-    public async Task<AppResult<UploadResponse>> UploadThumbnail(Stream image)
+    public async Task<Result<UploadResponse>> UploadThumbnail(Stream image)
     {
         var validationResult = ValidateImage(image);
 
         if (!validationResult.Succeeded)
-            return AppResult<UploadResponse>.Failure(validationResult.Error!.ErrorCode, validationResult.Error.ErrorMessages);
+            return Result<UploadResponse>.Failure(validationResult.Error!);
 
         var response = await UploadImage(image, thumbnailSize, ThumbnailCropMode);
 
-        return AppResult<UploadResponse>.Success(response);
+        return Result<UploadResponse>.Success(response);
     }
 
-    public async Task<AppResult<UploadResponse[]>> UploadImages(IEnumerable<Stream> images)
+    public async Task<Result<UploadResponse[]>> UploadImages(IEnumerable<Stream> images)
     {
         foreach (var image in images)
         {
             var validationResult = ValidateImage(image);
             if (!validationResult.Succeeded)
-                return AppResult<UploadResponse[]>.Failure(validationResult.Error!.ErrorCode, validationResult.Error.ErrorMessages);
+                return Result<UploadResponse[]>.Failure(validationResult.Error!);
         }
 
         var uploadTasks = images.Select(image => UploadImage(image, productImageSize, ProductImageCropMode));
 
         var response = await Task.WhenAll(uploadTasks);
 
-        return AppResult<UploadResponse[]>.Success(response);
+        return Result<UploadResponse[]>.Success(response);
     }
 
 
@@ -140,26 +139,26 @@ public class CloudinaryCloudService : ICloudService
         return response;
     }
 
-    private AppResult ValidateIcon(Stream icon)
+    private Result ValidateIcon(Stream icon)
     {
         if (icon.Length > maxIconSizeAllowed || icon.Length <= 0)
-            return AppResult.Failure(ErrorCode.UPLOADED_FILE_INVALID, [$"The icon size must not exceed {maxIconSizeAllowed / 1024} KB."]);
+            return Result.Failure(ErrorCode.UPLOADED_FILE_INVALID, [$"The icon size must not exceed {maxIconSizeAllowed / 1024} KB."]);
 
         if (!IsSvgFile(icon))
-            return AppResult.Failure(ErrorCode.UPLOADED_FILE_INVALID, ["The only icon format supported is SVG."]);
+            return Result.Failure(ErrorCode.UPLOADED_FILE_INVALID, ["The only icon format supported is SVG."]);
 
-        return AppResult.Success();
+        return Result.Success();
     }
 
-    private AppResult ValidateImage(Stream image)
+    private Result ValidateImage(Stream image)
     {
         if (image.Length > maxImageSizeAllowed || image.Length <= 0)
-            return AppResult.Failure(ErrorCode.UPLOADED_FILE_INVALID, [$"There is an image exceeds the maximum size limit of {maxImageSizeAllowed / 1024} KB."]);
+            return Result.Failure(ErrorCode.UPLOADED_FILE_INVALID, [$"There is an image exceeds the maximum size limit of {maxImageSizeAllowed / 1024} KB."]);
 
         if (!IsImageFile(image))
-            return AppResult.Failure(ErrorCode.UPLOADED_FILE_INVALID, ["There is an image in an invalid format."]);
+            return Result.Failure(ErrorCode.UPLOADED_FILE_INVALID, ["There is an image in an invalid format."]);
 
-        return AppResult.Success();
+        return Result.Success();
     }
 
     private static bool IsSvgFile(Stream stream)

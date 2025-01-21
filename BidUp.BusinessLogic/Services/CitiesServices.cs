@@ -1,4 +1,5 @@
 using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using BidUp.BusinessLogic.DTOs.CityDTOs;
 using BidUp.BusinessLogic.Interfaces;
 using BidUp.DataAccess;
@@ -20,11 +21,12 @@ public class CitiesServices : ICitiesService
 
     public async Task<IEnumerable<CityResponse>> GetCities()
     {
-        var cities = await appDbContext.Cities.AsNoTracking().ToListAsync();
+        var cities = await appDbContext.Cities
+            .ProjectTo<CityResponse>(mapper.ConfigurationProvider)
+            .AsNoTracking()
+            .ToListAsync();
 
-        var response = mapper.Map<IEnumerable<CityResponse>>(cities);
-
-        return response;
+        return cities;
     }
 
 }

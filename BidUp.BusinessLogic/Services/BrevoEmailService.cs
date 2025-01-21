@@ -19,23 +19,27 @@ public class BrevoEmailService : IEmailService
 
     public async Task SendConfirmationEmail(string userEmail, string confirmationLink)
     {
-        var to = new List<SendSmtpEmailTo> { new(userEmail) };
-
-        var emailTemplateId = long.Parse(configuration["BrevoEmailApi:ConfirmationEmailTemplateId"]!);
-
-        var sendSmtpEmail = new SendSmtpEmail(templateId: emailTemplateId, to: to, _params: new { ConfirmationLink = confirmationLink });
-
-        await apiInstance.SendTransacEmailAsync(sendSmtpEmail);
+        await SendTemplatedEmail(
+            userEmail,
+            "ConfirmationEmailTemplateId",
+            new { ConfirmationLink = confirmationLink });
     }
 
-    public async Task SendPasswordResetEmail(string userEmail, string passowrdResetPageLink)
+    public async Task SendPasswordResetEmail(string userEmail, string passwordResetPageLink)
+    {
+        await SendTemplatedEmail(
+            userEmail,
+            "PasswordResetEmailTemplateId",
+            new { PasswordResetPageLink = passwordResetPageLink });
+    }
+
+
+    private async Task SendTemplatedEmail(string userEmail, string configKey, object parameters)
     {
         var to = new List<SendSmtpEmailTo> { new(userEmail) };
-
-        var emailTemplateId = long.Parse(configuration["BrevoEmailApi:PasswordResetEmailTemplateId"]!);
-
-        var sendSmtpEmail = new SendSmtpEmail(templateId: emailTemplateId, to: to, _params: new { PassowrdResetPageLink = passowrdResetPageLink });
-
+        var emailTemplateId = long.Parse(configuration[$"BrevoEmailApi:{configKey}"]!);
+        var sendSmtpEmail = new SendSmtpEmail(templateId: emailTemplateId, to: to, _params: parameters);
         await apiInstance.SendTransacEmailAsync(sendSmtpEmail);
     }
+
 }

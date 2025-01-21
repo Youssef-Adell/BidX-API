@@ -17,7 +17,7 @@ namespace BidUp.DataAccess.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.6")
+                .HasAnnotation("ProductVersion", "9.0.1")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -39,20 +39,35 @@ namespace BidUp.DataAccess.Migrations
                     b.Property<int>("CityId")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("EndTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("HighestBidId")
-                        .HasColumnType("int");
+                    b.Property<DateTimeOffset>("EndTime")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<decimal>("MinBidIncrement")
-                        .HasColumnType("decimal(18,2)");
+                        .HasPrecision(18)
+                        .HasColumnType("decimal(18,0)");
 
-                    b.Property<DateTime>("StartTime")
-                        .HasColumnType("datetime2");
+                    b.Property<string>("ProductCondition")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ProductDescription")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ProductName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset>("StartTime")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<decimal>("StartingPrice")
-                        .HasColumnType("decimal(18,2)");
+                        .HasPrecision(18)
+                        .HasColumnType("decimal(18,0)");
+
+                    b.Property<string>("ThumbnailUrl")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int?>("WinnerId")
                         .HasColumnType("int");
@@ -65,13 +80,14 @@ namespace BidUp.DataAccess.Migrations
 
                     b.HasIndex("CityId");
 
-                    b.HasIndex("HighestBidId")
-                        .IsUnique()
-                        .HasFilter("[HighestBidId] IS NOT NULL");
+                    b.HasIndex("EndTime");
 
                     b.HasIndex("WinnerId");
 
-                    b.ToTable("Auction");
+                    b.ToTable("Auction", t =>
+                        {
+                            t.HasCheckConstraint("CK_Auction_ProductCondition", "ProductCondition IN ('New', 'Used')");
+                        });
                 });
 
             modelBuilder.Entity("BidUp.DataAccess.Entites.Bid", b =>
@@ -83,22 +99,27 @@ namespace BidUp.DataAccess.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<decimal>("Amount")
-                        .HasColumnType("decimal(18,2)");
+                        .HasPrecision(18)
+                        .HasColumnType("decimal(18,0)");
 
                     b.Property<int>("AuctionId")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("BidTime")
-                        .HasColumnType("datetime2");
-
                     b.Property<int>("BidderId")
                         .HasColumnType("int");
 
+                    b.Property<bool>("IsAccepted")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTimeOffset>("PlacedAt")
+                        .HasColumnType("datetimeoffset");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("AuctionId");
-
                     b.HasIndex("BidderId");
+
+                    b.HasIndex("AuctionId", "Amount")
+                        .IsDescending();
 
                     b.ToTable("Bid");
                 });
@@ -135,7 +156,31 @@ namespace BidUp.DataAccess.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int?>("LastMessageId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Participant1Id")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Participant2Id")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("LastMessageId")
+                        .IsUnique()
+                        .HasFilter("[LastMessageId] IS NOT NULL");
+
+                    b.HasIndex("Participant1Id");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("Participant1Id"), new[] { "Participant2Id", "LastMessageId" });
+
+                    b.HasIndex("Participant2Id");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("Participant2Id"), new[] { "Participant1Id", "LastMessageId" });
 
                     b.ToTable("Chat");
                 });
@@ -172,56 +217,32 @@ namespace BidUp.DataAccess.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<bool>("Seen")
+                    b.Property<bool>("IsRead")
                         .HasColumnType("bit");
+
+                    b.Property<int>("RecipientId")
+                        .HasColumnType("int");
 
                     b.Property<int>("SenderId")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("SentAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("SentAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ChatId");
+                    b.HasIndex("RecipientId");
 
                     b.HasIndex("SenderId");
 
-                    b.ToTable("Message");
-                });
+                    b.HasIndex("ChatId", "RecipientId", "IsRead");
 
-            modelBuilder.Entity("BidUp.DataAccess.Entites.Product", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                    b.ToTable("Message", t =>
+                        {
+                            t.HasTrigger("last_message_trigger");
+                        });
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("AuctionId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Condition")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ThumbnailUrl")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AuctionId")
-                        .IsUnique();
-
-                    b.ToTable("Product");
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
             modelBuilder.Entity("BidUp.DataAccess.Entites.ProductImage", b =>
@@ -230,7 +251,7 @@ namespace BidUp.DataAccess.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<int>("ProductId")
+                    b.Property<int>("AuctionId")
                         .HasColumnType("int");
 
                     b.Property<string>("Url")
@@ -239,7 +260,7 @@ namespace BidUp.DataAccess.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ProductId");
+                    b.HasIndex("AuctionId");
 
                     b.ToTable("ProductImage");
                 });
@@ -255,8 +276,8 @@ namespace BidUp.DataAccess.Migrations
                     b.Property<string>("Comment")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<decimal>("Rating")
                         .HasPrecision(2, 1)
@@ -268,8 +289,8 @@ namespace BidUp.DataAccess.Migrations
                     b.Property<int>("ReviewerId")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.HasKey("Id");
 
@@ -277,7 +298,12 @@ namespace BidUp.DataAccess.Migrations
 
                     b.HasIndex("ReviewerId");
 
-                    b.ToTable("Review");
+                    b.ToTable("Review", t =>
+                        {
+                            t.HasTrigger("average_rating_trigger");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
             modelBuilder.Entity("BidUp.DataAccess.Entites.User", b =>
@@ -290,6 +316,10 @@ namespace BidUp.DataAccess.Migrations
 
                     b.Property<int>("AccessFailedCount")
                         .HasColumnType("int");
+
+                    b.Property<decimal>("AverageRating")
+                        .HasPrecision(2, 1)
+                        .HasColumnType("decimal(2,1)");
 
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
@@ -305,6 +335,12 @@ namespace BidUp.DataAccess.Migrations
                     b.Property<string>("FirstName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("nvarchar(max)")
+                        .HasComputedColumnSql("[FirstName] + ' ' + [LastName]", true);
 
                     b.Property<bool>("IsOnline")
                         .HasColumnType("bit");
@@ -345,10 +381,6 @@ namespace BidUp.DataAccess.Migrations
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<decimal>("TotalRating")
-                        .HasPrecision(2, 1)
-                        .HasColumnType("decimal(2,1)");
-
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("bit");
 
@@ -366,25 +398,9 @@ namespace BidUp.DataAccess.Migrations
                         .HasDatabaseName("UserNameIndex")
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
 
-                    b.HasIndex("RefreshToken")
-                        .HasDatabaseName("RefreshTokenIndex");
+                    b.HasIndex("RefreshToken");
 
                     b.ToTable("User", "security");
-                });
-
-            modelBuilder.Entity("BidUp.DataAccess.Entites.UserChat", b =>
-                {
-                    b.Property<int>("ChatId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("ChatId", "UserId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("UserChat");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole<int>", b =>
@@ -525,21 +541,20 @@ namespace BidUp.DataAccess.Migrations
                     b.HasOne("BidUp.DataAccess.Entites.User", "Auctioneer")
                         .WithMany()
                         .HasForeignKey("AuctioneerId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("BidUp.DataAccess.Entites.Category", "Category")
                         .WithMany()
                         .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("BidUp.DataAccess.Entites.City", "City")
                         .WithMany()
                         .HasForeignKey("CityId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.HasOne("BidUp.DataAccess.Entites.Bid", "HighestBid")
-                        .WithOne()
-                        .HasForeignKey("BidUp.DataAccess.Entites.Auction", "HighestBidId");
 
                     b.HasOne("BidUp.DataAccess.Entites.User", "Winner")
                         .WithMany()
@@ -550,8 +565,6 @@ namespace BidUp.DataAccess.Migrations
                     b.Navigation("Category");
 
                     b.Navigation("City");
-
-                    b.Navigation("HighestBid");
 
                     b.Navigation("Winner");
                 });
@@ -574,39 +587,68 @@ namespace BidUp.DataAccess.Migrations
                     b.Navigation("Bidder");
                 });
 
+            modelBuilder.Entity("BidUp.DataAccess.Entites.Chat", b =>
+                {
+                    b.HasOne("BidUp.DataAccess.Entites.Message", "LastMessage")
+                        .WithOne()
+                        .HasForeignKey("BidUp.DataAccess.Entites.Chat", "LastMessageId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("BidUp.DataAccess.Entites.User", "Participant1")
+                        .WithMany()
+                        .HasForeignKey("Participant1Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("BidUp.DataAccess.Entites.User", "Participant2")
+                        .WithMany()
+                        .HasForeignKey("Participant2Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("LastMessage");
+
+                    b.Navigation("Participant1");
+
+                    b.Navigation("Participant2");
+                });
+
             modelBuilder.Entity("BidUp.DataAccess.Entites.Message", b =>
                 {
                     b.HasOne("BidUp.DataAccess.Entites.Chat", "Chat")
                         .WithMany("Messages")
                         .HasForeignKey("ChatId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("BidUp.DataAccess.Entites.User", "Recipient")
+                        .WithMany()
+                        .HasForeignKey("RecipientId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("BidUp.DataAccess.Entites.User", "Sender")
                         .WithMany()
                         .HasForeignKey("SenderId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Chat");
 
-                    b.Navigation("Sender");
-                });
+                    b.Navigation("Recipient");
 
-            modelBuilder.Entity("BidUp.DataAccess.Entites.Product", b =>
-                {
-                    b.HasOne("BidUp.DataAccess.Entites.Auction", null)
-                        .WithOne("Product")
-                        .HasForeignKey("BidUp.DataAccess.Entites.Product", "AuctionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                    b.Navigation("Sender");
                 });
 
             modelBuilder.Entity("BidUp.DataAccess.Entites.ProductImage", b =>
                 {
-                    b.HasOne("BidUp.DataAccess.Entites.Product", null)
-                        .WithMany("Images")
-                        .HasForeignKey("ProductId")
+                    b.HasOne("BidUp.DataAccess.Entites.Auction", "Auction")
+                        .WithMany("ProductImages")
+                        .HasForeignKey("AuctionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Auction");
                 });
 
             modelBuilder.Entity("BidUp.DataAccess.Entites.Review", b =>
@@ -626,25 +668,6 @@ namespace BidUp.DataAccess.Migrations
                     b.Navigation("Reviewee");
 
                     b.Navigation("Reviewer");
-                });
-
-            modelBuilder.Entity("BidUp.DataAccess.Entites.UserChat", b =>
-                {
-                    b.HasOne("BidUp.DataAccess.Entites.Chat", "Chat")
-                        .WithMany()
-                        .HasForeignKey("ChatId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("BidUp.DataAccess.Entites.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Chat");
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<int>", b =>
@@ -702,18 +725,12 @@ namespace BidUp.DataAccess.Migrations
                 {
                     b.Navigation("Bids");
 
-                    b.Navigation("Product")
-                        .IsRequired();
+                    b.Navigation("ProductImages");
                 });
 
             modelBuilder.Entity("BidUp.DataAccess.Entites.Chat", b =>
                 {
                     b.Navigation("Messages");
-                });
-
-            modelBuilder.Entity("BidUp.DataAccess.Entites.Product", b =>
-                {
-                    b.Navigation("Images");
                 });
 
             modelBuilder.Entity("BidUp.DataAccess.Entites.User", b =>

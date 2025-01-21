@@ -6,8 +6,8 @@ namespace BidUp.BusinessLogic.Interfaces;
 public interface ICategoriesService
 {
     Task<IEnumerable<CategoryResponse>> GetCategories();
-    Task<AppResult<CategoryResponse>> GetCategory(int id);
-    Task<AppResult<CategoryResponse>> AddCategory(AddCategoryRequest addCategoryRequest, Stream categoryIcon);
-    Task<AppResult> UpdateCategory(int id, UpdateCategoryRequest updateCategoryRequest, Stream? newCategoryIcon);
-    Task<AppResult> DeleteCategory(int id);
+    Task<Result<CategoryResponse>> GetCategory(int id);
+    Task<Result<CategoryResponse>> AddCategory(AddCategoryRequest request, Stream categoryIcon);
+    Task<Result> UpdateCategory(int id, UpdateCategoryRequest request, Stream? newCategoryIcon);
+    Task<Result> DeleteCategory(int id);
 }

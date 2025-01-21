@@ -4,7 +4,8 @@ public class BidResponse
 {
     public int Id { get; init; }
     public decimal Amount { get; init; }
-    public DateTime BidTime { get; init; }
+    public bool IsAccepted { get; init; }
+    public DateTimeOffset PlacedAt { get; init; }
     public int AuctionId { get; init; }
     public required Bidder Bidder { get; init; }
 }
@@ -12,7 +13,7 @@ public class BidResponse
 public class Bidder
 {
     public int Id { get; init; }
-    public required string Name { get; init; }
+    public required string FullName { get; init; }
     public string? ProfilePictureUrl { get; init; }
-    public decimal TotalRating { get; init; }
+    public decimal AverageRating { get; init; }
 }

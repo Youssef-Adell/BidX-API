@@ -1,0 +1,1 @@
+DROP TRIGGER [dbo].[last_message_trigger];
