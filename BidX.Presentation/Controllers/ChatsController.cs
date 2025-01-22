@@ -58,6 +58,22 @@ public class ChatsController : ControllerBase
     }
 
 
+    [HttpGet("{chatId}")]
+    [ProducesResponseType(typeof(ChatSummeryResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetChat(int chatId)
+    {
+        var userId = int.Parse(User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value!);
+
+        var result = await chatsService.GetChat(userId, chatId);
+
+        if (!result.Succeeded)
+            return NotFound(result.Error);
+
+        return Ok(result.Response);
+    }
+
+
     [HttpGet("{chatId}/messages")]
     [ProducesResponseType(typeof(Page<MessageResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]

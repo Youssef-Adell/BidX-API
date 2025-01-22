@@ -54,6 +54,19 @@ public class ChatsService : IChatsService
         return await CreateChat(callerId, request);
     }
 
+    public async Task<Result<ChatSummeryResponse>> GetChat(int callerId, int chatId)
+    {
+       var chat = await appDbContext.Chats
+            .Where(c=>c.Id == chatId && (c.Participant1Id == callerId || c.Participant2Id == callerId))
+            .ProjectTo<ChatSummeryResponse>(mapper.ConfigurationProvider, new { UserId = callerId })
+            .FirstOrDefaultAsync();
+        
+        if(chat is null)
+                return Result<ChatSummeryResponse>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Chat not found."]);
+
+        return Result<ChatSummeryResponse>.Success(chat);
+    }
+
     public async Task<Result<Page<MessageResponse>>> GetChatMessages(int callerId, int chatId, MessagesQueryParams queryParams)
     {
         // Build the query based on parameters
