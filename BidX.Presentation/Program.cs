@@ -24,7 +24,6 @@ builder.Services.AddControllers()
                 .AddJsonOptions(options =>
                 {
                     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()); // To serialize enum values to string instead of int
-                    options.JsonSerializerOptions.Converters.Add(new DateTimeConverter()); // To serialize and deserailize the date time in UTC format (https://github.com/dotnet/runtime/issues/1566)
                 });
 
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
