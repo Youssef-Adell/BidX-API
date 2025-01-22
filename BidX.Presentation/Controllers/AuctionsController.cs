@@ -63,7 +63,7 @@ public class AuctionsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> CreateAuction([FromForm] CreateAuctionRequest request, [Required][Length(1, 10, ErrorMessage = "The ProductImages field is required and must has 1 item at least item and 10 items at max.")] IEnumerable<IFormFile> productImages)
     {
-        var userId = int.Parse(User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value!);
+        var userId = User.GetUserId();
 
         var imagesStreams = productImages.Select(i => i.OpenReadStream());
 
@@ -99,8 +99,7 @@ public class AuctionsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> DeleteAuction(int id)
     {
-        var userId = int.Parse(User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value!);
-
+        var userId = User.GetUserId();
         var result = await auctionsService.DeleteAuction(userId, id);
 
         if (!result.Succeeded)
