@@ -31,7 +31,7 @@ public class ChatsController : ControllerBase
     [ProducesResponseType(typeof(Page<ChatDetailsResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetCurrentUserChats([FromQuery] ChatsQueryParams queryParams)
     {
-        var userId = int.Parse(User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value!);
+        var userId = User.GetUserId();
 
         var response = await chatsService.GetUserChats(userId, queryParams);
 
@@ -43,18 +43,18 @@ public class ChatsController : ControllerBase
     /// Creates a chat or retrieves it if exists.
     /// </summary>
     [HttpPost]
-    [ProducesResponseType(typeof(ChatSummeryResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ChatSummeryResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> CreateChatOrGetIfExist(CreateChatRequest request)
     {
-        var senderId = int.Parse(User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value!);
+        var senderId = User.GetUserId();
 
         var result = await chatsService.CreateChatOrGetIfExist(senderId, request);
 
         if (!result.Succeeded)
             return NotFound(result.Error);
 
-        return Ok(result.Response);
+        return CreatedAtAction(nameof(GetChat), new {chatId = result.Response!.Id}, result.Response);
     }
 
 
@@ -63,7 +63,7 @@ public class ChatsController : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetChat(int chatId)
     {
-        var userId = int.Parse(User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value!);
+        var userId = User.GetUserId();
 
         var result = await chatsService.GetChat(userId, chatId);
 
@@ -79,7 +79,7 @@ public class ChatsController : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetChatMessages(int chatId, [FromQuery] MessagesQueryParams queryParams)
     {
-        var userId = int.Parse(User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value!);
+        var userId = User.GetUserId();
 
         var result = await chatsService.GetChatMessages(userId, chatId, queryParams);
 

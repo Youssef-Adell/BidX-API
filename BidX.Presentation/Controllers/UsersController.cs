@@ -80,7 +80,7 @@ public class UsersController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> UpdateCurrentProfile(ProfileUpdateRequest request)
     {
-        var userId = int.Parse(User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value!);
+        var userId = User.GetUserId();
 
         await profilesService.UpdateProfile(userId, request);
 
@@ -94,7 +94,7 @@ public class UsersController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> UpdateCurrentProfilePicture([Required] IFormFile profilePicture)
     {
-        var userId = int.Parse(User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value!);
+        var userId = User.GetUserId();
 
         using (var profilePictureStream = profilePicture.OpenReadStream())
         {

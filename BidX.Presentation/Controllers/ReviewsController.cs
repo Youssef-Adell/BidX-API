@@ -46,7 +46,7 @@ public class ReviewsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> AddReview(int userId, AddReviewRequest request)
     {
-        var reviewerId = int.Parse(User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value!);
+        var reviewerId = User.GetUserId();
 
         var result = await reviewsService.AddReview(reviewerId, userId, request);
 
@@ -74,7 +74,7 @@ public class ReviewsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetMyReview(int userId)
     {
-        var reviewerId = int.Parse(User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value!);
+        var reviewerId = User.GetUserId();
 
         var result = await reviewsService.GetReview(reviewerId, userId);
 
@@ -92,7 +92,7 @@ public class ReviewsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> UpdateMyReview(int userId, UpdateReviewRequest request)
     {
-        var reviewerId = int.Parse(User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value!);
+        var reviewerId = User.GetUserId();
 
         var result = await reviewsService.UpdateReview(reviewerId, userId, request);
 
@@ -110,7 +110,7 @@ public class ReviewsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> DeleteMyReview(int userId)
     {
-        var reviewerId = int.Parse(User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value!);
+        var reviewerId = User.GetUserId();
 
         var result = await reviewsService.DeleteReview(reviewerId, userId);
 
