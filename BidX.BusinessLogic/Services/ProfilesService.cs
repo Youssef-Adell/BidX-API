@@ -1,8 +1,7 @@
-using AutoMapper;
-using AutoMapper.QueryableExtensions;
 using BidX.BusinessLogic.DTOs.CommonDTOs;
 using BidX.BusinessLogic.DTOs.ProfileDTOs;
 using BidX.BusinessLogic.Interfaces;
+using BidX.BusinessLogic.Mappings;
 using BidX.DataAccess;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,20 +11,18 @@ public class ProfilesService : IProfilesService
 {
     private readonly AppDbContext appDbContext;
     private readonly ICloudService cloudService;
-    private readonly IMapper mapper;
 
-    public ProfilesService(AppDbContext appDbContext, ICloudService cloudService, IMapper mapper)
+    public ProfilesService(AppDbContext appDbContext, ICloudService cloudService)
     {
         this.appDbContext = appDbContext;
         this.cloudService = cloudService;
-        this.mapper = mapper;
     }
 
 
     public async Task<Result<ProfileResponse>> GetProfile(int userId)
     {
         var userProfile = await appDbContext.Users
-        .ProjectTo<ProfileResponse>(mapper.ConfigurationProvider)
+        .ProjectToProfileResponse()
         .AsNoTracking()
         .SingleOrDefaultAsync(u => u.Id == userId);
 

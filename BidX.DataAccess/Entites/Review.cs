@@ -8,9 +8,9 @@ public class Review
 
     public string? Comment { get; set; }
 
-    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset CreatedAt { get; set; }
 
-    public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset UpdatedAt { get; set; }
 
     public int ReviewerId { get; set; }
     public User? Reviewer { get; set; }

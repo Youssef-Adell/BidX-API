@@ -5,7 +5,7 @@ using BidX.BusinessLogic.DTOs.CommonDTOs;
 using Microsoft.AspNetCore.Diagnostics;
 using Serilog;
 
-namespace BidXesentation.Infrastructure;
+namespace BidX.Presentation.Utils;
 
 internal sealed class GlobalExceptionHandler : IExceptionHandler
 {

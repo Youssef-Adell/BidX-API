@@ -1,9 +1,9 @@
-using AutoMapper;
-using AutoMapper.QueryableExtensions;
 using BidX.BusinessLogic.DTOs.AuctionDTOs;
 using BidX.BusinessLogic.DTOs.CommonDTOs;
 using BidX.BusinessLogic.DTOs.QueryParamsDTOs;
+using BidX.BusinessLogic.Extensions;
 using BidX.BusinessLogic.Interfaces;
+using BidX.BusinessLogic.Mappings;
 using BidX.DataAccess;
 using BidX.DataAccess.Entites;
 using Microsoft.EntityFrameworkCore;
@@ -14,13 +14,11 @@ public class AuctionsService : IAuctionsService
 {
     private readonly AppDbContext appDbContext;
     private readonly ICloudService cloudService;
-    private readonly IMapper mapper;
 
-    public AuctionsService(AppDbContext appDbContext, ICloudService cloudService, IMapper mapper)
+    public AuctionsService(AppDbContext appDbContext, ICloudService cloudService)
     {
         this.appDbContext = appDbContext;
         this.cloudService = cloudService;
-        this.mapper = mapper;
     }
 
     public async Task<Page<AuctionResponse>> GetAuctions(AuctionsQueryParams queryParams)
@@ -40,12 +38,9 @@ public class AuctionsService : IAuctionsService
 
         // Get the list of auctions with pagination and mapping
         var auctions = await auctionsQuery
-            // Get the last auctions first
             .OrderByDescending(a => a.Id)
-            // Paginate
-            .Skip((queryParams.Page - 1) * queryParams.PageSize)
-            .Take(queryParams.PageSize)
-            .ProjectTo<AuctionResponse>(mapper.ConfigurationProvider)
+            .ProjectToAuctionResponse() 
+            .Paginate(queryParams.Page, queryParams.PageSize)
             .AsNoTracking()
             .ToListAsync();
 
@@ -73,12 +68,9 @@ public class AuctionsService : IAuctionsService
 
         // Get the list of auctions with pagination and mapping
         var userAuctions = await userAuctionsQuery
-            // Get the newly added auctions first
             .OrderByDescending(a => a.Id)
-            // Paginate
-            .Skip((queryParams.Page - 1) * queryParams.PageSize)
-            .Take(queryParams.PageSize)
-            .ProjectTo<AuctionResponse>(mapper.ConfigurationProvider)
+            .ProjectToAuctionResponse()
+            .Paginate(queryParams.Page, queryParams.PageSize)
             .AsNoTracking()
             .ToListAsync();
 
@@ -111,16 +103,11 @@ public class AuctionsService : IAuctionsService
 
         // Get the list of auctions with pagination and mapping
         var auctionsUserHasBidOn = await auctionsUserHasBidOnQuery
-            // Get the newly added auctions first
             .OrderByDescending(a => a.Id)
-            // Paginate
-            .Skip((queryParams.Page - 1) * queryParams.PageSize)
-            .Take(queryParams.PageSize)
-            .ProjectTo<AuctionUserHasBidOnResponse>(mapper.ConfigurationProvider)
+            .ProjectToAuctionUserHasBidOnResponse(userId)
+            .Paginate(queryParams.Page, queryParams.PageSize)
             .AsNoTracking()
             .ToListAsync();
-
-        auctionsUserHasBidOn.ForEach(a => a.IsUserWon = a.IsActive ? null : a.WInnerId == userId);
 
         var response = new Page<AuctionUserHasBidOnResponse>(auctionsUserHasBidOn, queryParams.Page, queryParams.PageSize, totalCount);
         return Result<Page<AuctionUserHasBidOnResponse>>.Success(response);
@@ -133,7 +120,7 @@ public class AuctionsService : IAuctionsService
             .Include(a => a.Category)
             .Include(a => a.City)
             .Include(a => a.Auctioneer)
-            .ProjectTo<AuctionDetailsResponse>(mapper.ConfigurationProvider)
+            .ProjectToAuctionDetailsResponse()
             .AsNoTracking()
             .SingleOrDefaultAsync(c => c.Id == auctionId);
 
@@ -143,9 +130,9 @@ public class AuctionsService : IAuctionsService
         return Result<AuctionDetailsResponse>.Success(auctionResponse);
     }
 
-    public async Task<Result<AuctionResponse>> CreateAuction(int callerId, CreateAuctionRequest request, IEnumerable<Stream> productImages)
+    public async Task<Result<AuctionResponse>> CreateAuction(int auctioneerId, CreateAuctionRequest request, IEnumerable<Stream> productImages)
     {
-        var auction = mapper.Map<CreateAuctionRequest, Auction>(request, o => o.Items["AuctioneerId"] = callerId);
+        var auction = request.ToAuctionEntity(auctioneerId);
 
         var validationResult = await ValidateCategoryAndCity(request.CategoryId, request.CityId);
         if (!validationResult.Succeeded)
@@ -158,7 +145,7 @@ public class AuctionsService : IAuctionsService
         appDbContext.Add(auction);
         await appDbContext.SaveChangesAsync();
 
-        var response = mapper.Map<Auction, AuctionResponse>(auction);
+        var response =  auction.ToAuctionResponse();
         return Result<AuctionResponse>.Success(response);
     }
 

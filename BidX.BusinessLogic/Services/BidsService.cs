@@ -1,9 +1,9 @@
-using AutoMapper;
-using AutoMapper.QueryableExtensions;
 using BidX.BusinessLogic.DTOs.BidDTOs;
 using BidX.BusinessLogic.DTOs.CommonDTOs;
 using BidX.BusinessLogic.DTOs.QueryParamsDTOs;
+using BidX.BusinessLogic.Extensions;
 using BidX.BusinessLogic.Interfaces;
+using BidX.BusinessLogic.Mappings;
 using BidX.DataAccess;
 using BidX.DataAccess.Entites;
 using Microsoft.EntityFrameworkCore;
@@ -13,12 +13,10 @@ namespace BidX.BusinessLogic.Services;
 public class BidsService : IBidsService
 {
     private readonly AppDbContext appDbContext;
-    private readonly IMapper mapper;
 
-    public BidsService(AppDbContext appDbContext, IMapper mapper)
+    public BidsService(AppDbContext appDbContext)
     {
         this.appDbContext = appDbContext;
-        this.mapper = mapper;
     }
 
     public async Task<Result<Page<BidResponse>>> GetAuctionBids(int auctionId, BidsQueryParams queryParams)
@@ -42,12 +40,9 @@ public class BidsService : IBidsService
 
         // Get the list of bids with pagination and mapping
         var auctionBids = await auctionBidsQuery
-            // Get the last bids first
             .OrderByDescending(a => a.Id)
-            // Paginate
-            .Skip((queryParams.Page - 1) * queryParams.PageSize)
-            .Take(queryParams.PageSize)
-            .ProjectTo<BidResponse>(mapper.ConfigurationProvider)
+            .ProjectToBidResponse()
+            .Paginate(queryParams.Page, queryParams.PageSize)
             .AsNoTracking()
             .ToListAsync();
 
@@ -60,7 +55,7 @@ public class BidsService : IBidsService
     {
         var acceptedBid = await appDbContext.Bids
             .Include(b => b.Bidder)
-            .ProjectTo<BidResponse>(mapper.ConfigurationProvider)
+            .ProjectToBidResponse()
             .AsNoTracking()
             .SingleOrDefaultAsync(b => b.AuctionId == auctionId && b.IsAccepted);
 
@@ -81,7 +76,7 @@ public class BidsService : IBidsService
         var highestBid = await appDbContext.Bids
             .Include(b => b.Bidder)
             .OrderByDescending(b => b.Amount)
-            .ProjectTo<BidResponse>(mapper.ConfigurationProvider)
+            .ProjectToBidResponse()
             .AsNoTracking()
             .FirstOrDefaultAsync(b => b.AuctionId == auctionId);
 
@@ -104,13 +99,13 @@ public class BidsService : IBidsService
             return Result<BidResponse>.Failure(validationResult.Error!);
 
         // Create and save the bid
-        var bid = mapper.Map<BidRequest, Bid>(request, o => o.Items["BidderId"] = bidderId);
+        var bid = request.ToBidEntity(bidderId);
         appDbContext.Bids.Add(bid);
         await appDbContext.SaveChangesAsync();
 
         await appDbContext.Entry(bid).Reference(b => b.Bidder).LoadAsync();
-        var response = mapper.Map<Bid, BidResponse>(bid);
 
+        var response = bid.ToBidResponse();
         return Result<BidResponse>.Success(response);
     }
 
@@ -128,7 +123,7 @@ public class BidsService : IBidsService
         AcceptBidAndEndAuction(bid!);
         await appDbContext.SaveChangesAsync();
 
-        var response = mapper.Map<Bid, BidResponse>(bid!);
+        var response = bid!.ToBidResponse();
         return Result<BidResponse>.Success(response);
     }
 

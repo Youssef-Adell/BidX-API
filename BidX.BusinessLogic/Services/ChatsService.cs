@@ -1,11 +1,10 @@
-using AutoMapper;
-using AutoMapper.QueryableExtensions;
 using BidX.BusinessLogic.DTOs.ChatDTOs;
 using BidX.BusinessLogic.DTOs.CommonDTOs;
 using BidX.BusinessLogic.DTOs.QueryParamsDTOs;
+using BidX.BusinessLogic.Extensions;
 using BidX.BusinessLogic.Interfaces;
+using BidX.BusinessLogic.Mappings;
 using BidX.DataAccess;
-using BidX.DataAccess.Entites;
 using Microsoft.EntityFrameworkCore;
 
 namespace BidX.BusinessLogic.Services;
@@ -13,13 +12,10 @@ namespace BidX.BusinessLogic.Services;
 public class ChatsService : IChatsService
 {
     private readonly AppDbContext appDbContext;
-    private readonly IMapper mapper;
 
-    public ChatsService(AppDbContext appDbContext, IMapper mapper)
+    public ChatsService(AppDbContext appDbContext)
     {
         this.appDbContext = appDbContext;
-        this.mapper = mapper;
-
     }
 
     public async Task<Page<ChatDetailsResponse>> GetUserChats(int userId, ChatsQueryParams queryParams)
@@ -35,9 +31,8 @@ public class ChatsService : IChatsService
         // Get the list of chats with pagination and mapping
         var userChats = await userChatsQuery
             .OrderByDescending(c => c.LastMessageId)
-            .ProjectTo<ChatDetailsResponse>(mapper.ConfigurationProvider, new { userId })
-            .Skip((queryParams.Page - 1) * queryParams.PageSize)
-            .Take(queryParams.PageSize)
+            .ProjectToChatDetailsResponse(userId)
+            .Paginate(queryParams.Page, queryParams.PageSize)
             .AsNoTracking()
             .ToListAsync();
 
@@ -58,7 +53,7 @@ public class ChatsService : IChatsService
     {
        var chat = await appDbContext.Chats
             .Where(c=>c.Id == chatId && (c.Participant1Id == callerId || c.Participant2Id == callerId))
-            .ProjectTo<ChatSummeryResponse>(mapper.ConfigurationProvider, new { UserId = callerId })
+            .ProjectToChatSummaryResponse(callerId)
             .FirstOrDefaultAsync();
         
         if(chat is null)
@@ -87,9 +82,8 @@ public class ChatsService : IChatsService
         // Get the list of messages with pagination and mapping
         var chatMessages = await chatMessagesQuery
             .OrderByDescending(c => c.Id)
-            .ProjectTo<MessageResponse>(mapper.ConfigurationProvider)
-            .Skip((queryParams.Page - 1) * queryParams.PageSize)
-            .Take(queryParams.PageSize)
+            .ProjectToMessageResponse()
+            .Paginate(queryParams.Page, queryParams.PageSize)
             .AsNoTracking()
             .ToListAsync();
 
@@ -110,15 +104,11 @@ public class ChatsService : IChatsService
             return Result<MessageResponse>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Chat not found."]);
 
         // Create and save the message
-        var message = mapper.Map<SendMessageRequest, Message>(request, o =>
-        {
-            o.Items["SenderId"] = senderId;
-            o.Items["RecipientId"] = chat.ParticipantId;
-        });
+        var message = request.ToMessageEntity(senderId, chat.ParticipantId);
         appDbContext.Messages.Add(message);
         await appDbContext.SaveChangesAsync();
 
-        var response = mapper.Map<Message, MessageResponse>(message);
+        var response = message.ToMessageResponse();
         return Result<MessageResponse>.Success(response);
     }
 
@@ -159,15 +149,20 @@ public class ChatsService : IChatsService
         return await appDbContext.Chats
             .Where(c => (c.Participant1Id == participant1Id && c.Participant2Id == participant2Id)
                 || (c.Participant1Id == participant2Id && c.Participant2Id == participant1Id))
-            .ProjectTo<ChatSummeryResponse>(mapper.ConfigurationProvider, new { UserId = participant1Id })
+            .ProjectToChatSummaryResponse(participant1Id)
             .AsNoTracking()
             .SingleOrDefaultAsync();
     }
 
     private async Task<Result<ChatSummeryResponse>> CreateChat(int callerId, CreateChatRequest request)
     {
-        if (callerId == request.ParticipantId)
-            return Result<ChatSummeryResponse>.Failure(ErrorCode.USER_INPUT_INVALID, ["Can't chat with yourself."]);
+        // Check chatting eligibility
+        var hasDealtWithUserBefore = await appDbContext.Auctions.AnyAsync(a =>
+            (a.WinnerId == callerId && a.AuctioneerId == request.ParticipantId) ||
+            (a.AuctioneerId == request.ParticipantId && a.WinnerId == callerId));
+
+        if(!hasDealtWithUserBefore)
+            return Result<ChatSummeryResponse>.Failure(ErrorCode.CHATTING_NOT_ALLOWED, ["You cannot chat with a user you have not dealt with before."]);
 
         var participant = await appDbContext.Users
             .AsNoTracking()
@@ -176,16 +171,11 @@ public class ChatsService : IChatsService
         if (participant == null)
             return Result<ChatSummeryResponse>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Participant not found."]);
 
-        var chat = mapper.Map<CreateChatRequest, Chat>(request, o =>
-        {
-            o.Items["Participant1Id"] = callerId;
-        });
-
+        var chat = request.ToChatEntity(callerId);
         appDbContext.Chats.Add(chat);
         await appDbContext.SaveChangesAsync();
 
-        chat.Participant2 = participant;
-        var response = mapper.Map<Chat, ChatSummeryResponse>(chat, o => o.Items["UserId"] = callerId);
+        var response = chat.ToChatSummeryResponse(callerId, participant);
         return Result<ChatSummeryResponse>.Success(response);
     }
 }
