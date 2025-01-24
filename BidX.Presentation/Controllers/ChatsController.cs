@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using BidX.BusinessLogic.DTOs.ChatDTOs;
 using BidX.BusinessLogic.DTOs.CommonDTOs;
 using BidX.BusinessLogic.DTOs.QueryParamsDTOs;

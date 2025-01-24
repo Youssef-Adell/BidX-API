@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using BidX.BusinessLogic.DTOs.CommonDTOs;
 using BidX.BusinessLogic.DTOs.QueryParamsDTOs;
 using BidX.BusinessLogic.DTOs.ReviewsDTOs;
@@ -56,7 +55,7 @@ public class ReviewsController : ControllerBase
             if (errorCode == ErrorCode.RESOURCE_NOT_FOUND)
                 return NotFound(result.Error);
 
-            else if (errorCode == ErrorCode.REVIEWING_NOW_ALLOWED)
+            else if (errorCode == ErrorCode.REVIEWING_NOT_ALLOWED)
                 return StatusCode(StatusCodes.Status403Forbidden, result.Error);
 
             else if (errorCode == ErrorCode.REVIEW_ALREADY_EXISTS)

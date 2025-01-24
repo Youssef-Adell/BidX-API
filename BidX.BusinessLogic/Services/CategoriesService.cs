@@ -1,10 +1,8 @@
-using AutoMapper;
-using AutoMapper.QueryableExtensions;
 using BidX.BusinessLogic.DTOs.CategoryDTOs;
 using BidX.BusinessLogic.DTOs.CommonDTOs;
 using BidX.BusinessLogic.Interfaces;
+using BidX.BusinessLogic.Mappings;
 using BidX.DataAccess;
-using BidX.DataAccess.Entites;
 using Microsoft.EntityFrameworkCore;
 
 namespace BidX.BusinessLogic.Services;
@@ -12,13 +10,11 @@ namespace BidX.BusinessLogic.Services;
 public class CategoriesService : ICategoriesService
 {
     private readonly AppDbContext appDbContext;
-    private readonly IMapper mapper;
     private readonly ICloudService cloudService;
 
-    public CategoriesService(AppDbContext appDbContext, IMapper mapper, ICloudService cloudService)
+    public CategoriesService(AppDbContext appDbContext, ICloudService cloudService)
     {
         this.appDbContext = appDbContext;
-        this.mapper = mapper;
         this.cloudService = cloudService;
     }
 
@@ -26,7 +22,7 @@ public class CategoriesService : ICategoriesService
     {
         var categories = await appDbContext.Categories
             .Where(c => !c.IsDeleted)
-            .ProjectTo<CategoryResponse>(mapper.ConfigurationProvider)
+            .ProjectToCategoryResponse()
             .AsNoTracking()
             .ToListAsync();
 
@@ -37,7 +33,7 @@ public class CategoriesService : ICategoriesService
     {
         var category = await appDbContext.Categories
             .Where(c => c.Id == id && !c.IsDeleted)
-            .ProjectTo<CategoryResponse>(mapper.ConfigurationProvider)
+            .ProjectToCategoryResponse()
             .AsNoTracking()
             .SingleOrDefaultAsync();
 
@@ -53,11 +49,12 @@ public class CategoriesService : ICategoriesService
         if (!uploadResult.Succeeded)
             return Result<CategoryResponse>.Failure(uploadResult.Error!);
 
-        var category = mapper.Map<AddCategoryRequest, Category>(request, o => o.Items["IconUrl"] = uploadResult.Response!.FileUrl);
+        var iconUrl = uploadResult.Response!.FileUrl;
+        var category =  request.ToCategoryEntity(iconUrl);
         appDbContext.Add(category);
         await appDbContext.SaveChangesAsync();
 
-        var response = mapper.Map<Category, CategoryResponse>(category);
+        var response = category.ToCategoryResponse();
         return Result<CategoryResponse>.Success(response);
     }
 

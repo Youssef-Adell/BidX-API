@@ -8,7 +8,7 @@ public class Bid
 
     public bool IsAccepted { get; set; }
 
-    public DateTimeOffset PlacedAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset PlacedAt { get; set; }
 
     public int AuctionId { get; set; }
     public Auction? Auction { get; set; }

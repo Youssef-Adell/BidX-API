@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using BidX.BusinessLogic.DTOs.AuthDTOs;
 using BidX.BusinessLogic.DTOs.CommonDTOs;
 using BidX.BusinessLogic.Interfaces;

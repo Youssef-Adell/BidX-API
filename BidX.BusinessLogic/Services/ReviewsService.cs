@@ -1,11 +1,10 @@
-using AutoMapper;
-using AutoMapper.QueryableExtensions;
 using BidX.BusinessLogic.DTOs.CommonDTOs;
 using BidX.BusinessLogic.DTOs.QueryParamsDTOs;
 using BidX.BusinessLogic.DTOs.ReviewsDTOs;
+using BidX.BusinessLogic.Extensions;
 using BidX.BusinessLogic.Interfaces;
+using BidX.BusinessLogic.Mappings;
 using BidX.DataAccess;
-using BidX.DataAccess.Entites;
 using Microsoft.EntityFrameworkCore;
 
 namespace BidX.BusinessLogic.Services;
@@ -13,21 +12,21 @@ namespace BidX.BusinessLogic.Services;
 public class ReviewsService : IReviewsService
 {
     private readonly AppDbContext appDbContext;
-    private readonly IMapper mapper;
 
-    public ReviewsService(AppDbContext appDbContext, IMapper mapper)
+    public ReviewsService(AppDbContext appDbContext)
     {
         this.appDbContext = appDbContext;
-        this.mapper = mapper;
     }
 
 
     public async Task<Result<Page<ReviewResponse>>> GetUserReviewsReceived(int revieweeId, ReviewsQueryParams queryParams)
     {
+        // Build the query based on the parameters
         var userReviewsQuery = appDbContext.Reviews
             .Where(r => r.RevieweeId == revieweeId)
             .Include(r => r.Reviewer);
 
+        // Get the total count before pagination
         var totalCount = await userReviewsQuery.CountAsync();
         if (totalCount == 0)
         {
@@ -38,13 +37,11 @@ public class ReviewsService : IReviewsService
             return Result<Page<ReviewResponse>>.Success(new Page<ReviewResponse>([], queryParams.Page, queryParams.PageSize, totalCount));
         }
 
+        // Get the list of reviews with pagination and mapping
         var userReviews = await userReviewsQuery
-            // Get the newly added reviews first
             .OrderByDescending(a => a.Id)
-            // Paginate
-            .Skip((queryParams.Page - 1) * queryParams.PageSize)
-            .Take(queryParams.PageSize)
-            .ProjectTo<ReviewResponse>(mapper.ConfigurationProvider)
+            .ProjectToReviewResponse()
+            .Paginate(queryParams.Page, queryParams.PageSize)
             .AsNoTracking()
             .ToListAsync();
 
@@ -56,7 +53,7 @@ public class ReviewsService : IReviewsService
     {
         var review = await appDbContext.Reviews
             .Where(r => r.ReviewerId == reviewerId && r.RevieweeId == revieweeId)
-            .ProjectTo<MyReviewResponse>(mapper.ConfigurationProvider)
+            .ProjectToMyReviewResponse()
             .AsNoTracking()
             .SingleOrDefaultAsync();
 
@@ -79,15 +76,11 @@ public class ReviewsService : IReviewsService
             return Result<MyReviewResponse>.Failure(validationResult.Error!);
 
         // Create and save the review
-        var review = mapper.Map<AddReviewRequest, Review>(request, o =>
-        {
-            o.Items["ReviewerId"] = reviewerId;
-            o.Items["RevieweeId"] = revieweeId;
-        });
+        var review = request.ToReviewEntity(reviewerId, revieweeId);
         appDbContext.Reviews.Add(review);
         await appDbContext.SaveChangesAsync();
 
-        var response = mapper.Map<Review, MyReviewResponse>(review);
+        var response = review.ToMyReviewResponse();
         return Result<MyReviewResponse>.Success(response);
     }
 
@@ -149,7 +142,7 @@ public class ReviewsService : IReviewsService
             return Result.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["User not found."]);
 
         if (!revieweeInfo.HasDealtWithReviewer)
-            return Result.Failure(ErrorCode.REVIEWING_NOW_ALLOWED, ["You cannot review a user you have not dealt with before."]);
+            return Result.Failure(ErrorCode.REVIEWING_NOT_ALLOWED, ["You cannot review a user you have not dealt with before."]);
 
         if (revieweeInfo.HasReviewedBefore)
             return Result.Failure(ErrorCode.REVIEW_ALREADY_EXISTS, ["You cannot review a user more than once."]);

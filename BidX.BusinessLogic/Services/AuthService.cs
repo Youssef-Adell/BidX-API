@@ -2,10 +2,10 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
-using AutoMapper;
 using BidX.BusinessLogic.DTOs.AuthDTOs;
 using BidX.BusinessLogic.DTOs.CommonDTOs;
 using BidX.BusinessLogic.Interfaces;
+using BidX.BusinessLogic.Mappings;
 using BidX.DataAccess;
 using BidX.DataAccess.Entites;
 using Microsoft.AspNetCore.Identity;
@@ -21,24 +21,20 @@ public class AuthService : IAuthService
     private readonly AppDbContext appDbContext;
     private readonly IEmailService emailService;
     private readonly IConfiguration configuration;
-    private readonly IMapper mapper;
 
-    public AuthService(UserManager<User> userManager, AppDbContext appDbContext, IEmailService emailService, IConfiguration configuration, IMapper mapper)
+    public AuthService(UserManager<User> userManager, AppDbContext appDbContext, IEmailService emailService, IConfiguration configuration)
     {
         this.userManager = userManager;
         this.appDbContext = appDbContext;
         this.emailService = emailService;
         this.configuration = configuration;
-        this.mapper = mapper;
     }
 
     public async Task<Result> Register(RegisterRequest request, string userRole)
     {
-        var user = mapper.Map<RegisterRequest, User>(request, o =>
-            o.Items["UserName"] = Guid.NewGuid().ToString() // because it needs a unique value and we dont want to ask user to enter it to make the register process easier, and if we set it to the email value it will give user 2 errors in case if the entered email is already taken, one for username and one for email
-        );
+        var user = request.ToUserEntity();
 
-        var creationResult = await userManager.CreateAsync(user, request.Password.Trim());
+        var creationResult = await userManager.CreateAsync(user, request.Password);
         if (!creationResult.Succeeded)
         {
             var errorMessages = creationResult.Errors.Select(error => error.Description);
@@ -211,13 +207,7 @@ public class AuthService : IAuthService
         var roles = await userManager.GetRolesAsync(user);
         var accessToken = CreateAccessToken(user, roles);
 
-        var response = mapper.Map<User, LoginResponse>(user, o =>
-        {
-            o.Items["Role"] = roles.First();
-            o.Items["AccessToken"] = accessToken;
-        });
-
-        return response;
+        return user.ToLoginResponse(roles.First(), accessToken);
     }
 
     private string CreateRefreshToken()

@@ -1,4 +1,3 @@
-using System;
 using System.Security.Claims;
 
 public static class ClaimsPrincipalExtensions

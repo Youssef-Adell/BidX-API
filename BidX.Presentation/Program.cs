@@ -1,7 +1,6 @@
 using System.Reflection;
 using System.Text;
 using System.Text.Json.Serialization;
-using BidX.BusinessLogic;
 using BidX.BusinessLogic.DTOs.CommonDTOs;
 using BidX.BusinessLogic.Interfaces;
 using BidX.BusinessLogic.Services;
@@ -136,7 +135,6 @@ builder.Services.AddAuthentication(options =>
 // https://nblumhardt.com/2024/04/serilog-net8-0-minimal
 Log.Logger = new LoggerConfiguration().ReadFrom.Configuration(builder.Configuration).CreateLogger();
 
-builder.Services.AddAutoMapper(typeof(MappingProfile));
 builder.Services.AddSignalR(options =>
 {
     options.KeepAliveInterval = TimeSpan.FromSeconds(5);
