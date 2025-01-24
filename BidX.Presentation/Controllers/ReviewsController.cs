@@ -2,6 +2,7 @@ using BidX.BusinessLogic.DTOs.CommonDTOs;
 using BidX.BusinessLogic.DTOs.QueryParamsDTOs;
 using BidX.BusinessLogic.DTOs.ReviewsDTOs;
 using BidX.BusinessLogic.Interfaces;
+using BidX.Presentation.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

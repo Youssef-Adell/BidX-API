@@ -3,6 +3,7 @@ using BidX.BusinessLogic.DTOs.AuctionDTOs;
 using BidX.BusinessLogic.DTOs.CommonDTOs;
 using BidX.BusinessLogic.DTOs.QueryParamsDTOs;
 using BidX.BusinessLogic.Interfaces;
+using BidX.Presentation.Utils;
 using BidXesentation.Hubs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

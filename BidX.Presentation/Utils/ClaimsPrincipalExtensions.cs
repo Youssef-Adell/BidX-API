@@ -1,5 +1,6 @@
 using System.Security.Claims;
 
+namespace BidX.Presentation.Utils;
 public static class ClaimsPrincipalExtensions
 {
     /// <summary>

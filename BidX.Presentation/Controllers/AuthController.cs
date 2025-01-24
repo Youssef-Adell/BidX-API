@@ -1,6 +1,7 @@
 using BidX.BusinessLogic.DTOs.AuthDTOs;
 using BidX.BusinessLogic.DTOs.CommonDTOs;
 using BidX.BusinessLogic.Interfaces;
+using BidX.Presentation.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

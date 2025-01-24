@@ -6,6 +6,7 @@ using BidX.BusinessLogic.DTOs.ProfileDTOs;
 using BidX.BusinessLogic.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using BidX.Presentation.Utils;
 
 namespace BidXesentation.Controllers;
 
