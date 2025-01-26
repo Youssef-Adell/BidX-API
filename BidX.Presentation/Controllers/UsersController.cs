@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using BidX.Presentation.Utils;
 
-namespace BidXesentation.Controllers;
+namespace BidX.Presentation.Controllers;
 
 [ApiController]
 [Route("api/users")]

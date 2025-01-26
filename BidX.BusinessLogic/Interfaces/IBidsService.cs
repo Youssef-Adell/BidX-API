@@ -9,6 +9,6 @@ public interface IBidsService
     Task<Result<Page<BidResponse>>> GetAuctionBids(int auctionId, BidsQueryParams queryParams);
     Task<Result<BidResponse>> GetAcceptedBid(int auctionId);
     Task<Result<BidResponse>> GetHighestBid(int auctionId);
-    Task<Result<BidResponse>> PlaceBid(int bidderId, BidRequest request);
-    Task<Result<BidResponse>> AcceptBid(int callerId, AcceptBidRequest request);
+    Task PlaceBid(int bidderId, BidRequest request);
+    Task AcceptBid(int callerId, AcceptBidRequest request);
 }

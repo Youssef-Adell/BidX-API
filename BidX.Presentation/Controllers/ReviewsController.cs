@@ -6,7 +6,7 @@ using BidX.Presentation.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace BidXesentation.Controllers;
+namespace BidX.Presentation.Controllers;
 
 [ApiController]
 [Route("api/users/{userId}/reviews")]

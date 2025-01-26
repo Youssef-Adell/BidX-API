@@ -6,6 +6,7 @@ using BidX.BusinessLogic.Interfaces;
 using BidX.BusinessLogic.Services;
 using BidX.DataAccess;
 using BidX.DataAccess.Entites;
+using BidX.Presentation.Hubs;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -45,7 +46,7 @@ public static class ServiceCollectionExtensions
         });
 
         services.AddEndpointsApiExplorer();
-        
+
         return services;
     }
 
@@ -87,9 +88,9 @@ public static class ServiceCollectionExtensions
 
     public static IServiceCollection AddAndConfigureDBContext(this IServiceCollection services)
     {
-        services.AddDbContext<AppDbContext>(options => 
+        services.AddDbContext<AppDbContext>(options =>
             options.UseSqlServer(Environment.GetEnvironmentVariable("BIDX_DB_CONNECTION_STRING")));
-        
+
         return services;
     }
 
@@ -136,7 +137,7 @@ public static class ServiceCollectionExtensions
                 {
                     var accessToken = context.Request.Query["access_token"];
                     var path = context.HttpContext.Request.Path;
-                    if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/appHub"))
+                    if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hub"))
                     {
                         context.Token = accessToken;
                     }
@@ -147,7 +148,7 @@ public static class ServiceCollectionExtensions
 
         return services;
     }
-    
+
     public static IServiceCollection AddAndConfigureSignalR(this IServiceCollection services)
     {
         services.AddSignalR(options =>
@@ -164,7 +165,7 @@ public static class ServiceCollectionExtensions
         services.AddCors(options =>
         {
             var frontendOrigin = configuration["Cors:FrontendOrigin"]!;
-            options.AddPolicy(name: "AllowFrontendDomain", policy => 
+            options.AddPolicy(name: "AllowFrontendDomain", policy =>
                 policy.WithOrigins(frontendOrigin)
                       .AllowAnyMethod()
                       .AllowAnyHeader()
@@ -186,6 +187,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IProfilesService, ProfilesService>();
         services.AddScoped<IChatsService, ChatsService>();
         services.AddScoped<IReviewsService, ReviewsService>();
+        services.AddScoped<IRealTimeService, SignalrRealTimeService>();
 
         return services;
     }

@@ -14,11 +14,13 @@ public class AuctionsService : IAuctionsService
 {
     private readonly AppDbContext appDbContext;
     private readonly ICloudService cloudService;
+    private readonly IRealTimeService realTimeService;
 
-    public AuctionsService(AppDbContext appDbContext, ICloudService cloudService)
+    public AuctionsService(AppDbContext appDbContext, ICloudService cloudService, IRealTimeService realTimeService)
     {
         this.appDbContext = appDbContext;
         this.cloudService = cloudService;
+        this.realTimeService = realTimeService;
     }
 
     public async Task<Page<AuctionResponse>> GetAuctions(AuctionsQueryParams queryParams)
@@ -39,7 +41,7 @@ public class AuctionsService : IAuctionsService
         // Get the list of auctions with pagination and mapping
         var auctions = await auctionsQuery
             .OrderByDescending(a => a.Id)
-            .ProjectToAuctionResponse() 
+            .ProjectToAuctionResponse()
             .Paginate(queryParams.Page, queryParams.PageSize)
             .AsNoTracking()
             .ToListAsync();
@@ -130,23 +132,29 @@ public class AuctionsService : IAuctionsService
         return Result<AuctionDetailsResponse>.Success(auctionResponse);
     }
 
-    public async Task<Result<AuctionResponse>> CreateAuction(int auctioneerId, CreateAuctionRequest request, IEnumerable<Stream> productImages)
+    public async Task<Result<AuctionDetailsResponse>> CreateAuction(int auctioneerId, CreateAuctionRequest request, IEnumerable<Stream> productImages)
     {
         var auction = request.ToAuctionEntity(auctioneerId);
 
         var validationResult = await ValidateCategoryAndCity(request.CategoryId, request.CityId);
         if (!validationResult.Succeeded)
-            return Result<AuctionResponse>.Failure(validationResult.Error!);
+            return Result<AuctionDetailsResponse>.Failure(validationResult.Error!);
 
         var assigningResult = await AssignImagesToAuction(auction, productImages);
         if (!assigningResult.Succeeded)
-            return Result<AuctionResponse>.Failure(assigningResult.Error!);
+            return Result<AuctionDetailsResponse>.Failure(assigningResult.Error!);
 
+        // Save the auction to the database
         appDbContext.Add(auction);
         await appDbContext.SaveChangesAsync();
 
-        var response =  auction.ToAuctionResponse();
-        return Result<AuctionResponse>.Success(response);
+        // Send the created auction to the feed
+        var auctionResponse = auction.ToAuctionResponse();
+        await realTimeService.SendAuctionToFeed(auctionResponse);
+
+        // Return the created auction details to the creator
+        var auctionDetailsResponse = (await GetAuction(auction.Id)).Response!;
+        return Result<AuctionDetailsResponse>.Success(auctionDetailsResponse);
     }
 
     public async Task<Result> DeleteAuction(int callerId, int auctionId)
@@ -158,6 +166,7 @@ public class AuctionsService : IAuctionsService
         if (noOfRowsAffected <= 0)
             return Result.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Auction not found."]);
 
+        await realTimeService.DeleteAuctionFromFeed(auctionId);
         return Result.Success();
     }
 

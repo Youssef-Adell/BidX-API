@@ -5,7 +5,7 @@ using BidX.BusinessLogic.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace BidXesentation.Controllers;
+namespace BidX.Presentation.Controllers;
 
 [ApiController]
 [Route("api/categories")]
