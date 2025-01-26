@@ -16,7 +16,7 @@ public class SignalrRealTimeService : IRealTimeService
         this.hubContext = hubContext;
     }
 
-    #region Chats
+    #region Chat
     public async Task SendMessageToChat(int chatId, MessageResponse message)
     {
         var groupName = $"CHAT#{chatId}";
@@ -61,7 +61,7 @@ public class SignalrRealTimeService : IRealTimeService
     #endregion
 
 
-    #region Bids
+    #region Auction
     public async Task SendPlacedBidToAuctionRoom(int auctionId, BidResponse bid)
     {
         var groupName = $"AUCTION#{auctionId}";
@@ -77,10 +77,7 @@ public class SignalrRealTimeService : IRealTimeService
             .Group(groupName)
             .BidAccepted(bid);
     }
-    #endregion
 
-
-    #region Auctions
     public async Task SendAuctionToFeed(AuctionResponse auction)
     {
         var groupName = "FEED";
@@ -123,7 +120,7 @@ public class SignalrRealTimeService : IRealTimeService
     #endregion
 
 
-    #region Errors
+    #region Common
     public async Task SendErrorToUser(int userId, ErrorResponse error)
     {
         await hubContext.Clients

@@ -15,7 +15,6 @@ public interface IRealTimeService
 
     Task SendPlacedBidToAuctionRoom(int auctionId, BidResponse bid);
     Task SendAcceptedBidToAuctionRoom(int auctionId, BidResponse bid);
-
     Task SendAuctionToFeed(AuctionResponse auction);
     Task DeleteAuctionFromFeed(int auctionId);
     Task UpdateAuctionPriceInFeed(int auctionId, decimal newPrice);
