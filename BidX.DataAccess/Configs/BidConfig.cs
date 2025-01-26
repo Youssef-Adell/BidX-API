@@ -12,7 +12,10 @@ public class BidConfig : IEntityTypeConfiguration<Bid>
         builder.Property(b => b.Amount)
             .HasPrecision(18, 0);
 
-        builder.HasIndex(b => new { b.AuctionId, b.Amount })
+        // Needed in GetHighestBid()
+        // Needed in ProjectToAuctionResponse(), ProjectToAuctionDetailsResponse() and PlaceBid() for:
+        //  - Calculating Auction CurruentPrice
+        builder.HasIndex(b => new { b.AuctionId, b.Amount, b.IsAccepted }) // IsAccepted is added to avoid key lookups while calculating CurrentPrice in case of ended auctions
             .IsDescending();
     }
 

@@ -46,10 +46,12 @@ public static class AuctionMappingExtensions
             ProductName = a.ProductName,
             ProductCondition = a.ProductCondition,
             ThumbnailUrl = a.ThumbnailUrl,
-            CurrentPrice = a.Bids!
-                .OrderByDescending(b => b.Amount)
-                .Select(b => (decimal?)b.Amount)
-                .FirstOrDefault() ?? a.StartingPrice,
+            CurrentPrice = a.WinnerId.HasValue ?
+                a.Bids!.Where(b => b.IsAccepted).Select(b => b.Amount).Single()
+                :
+                a.Bids!.OrderByDescending(b => b.Amount)
+                    .Select(b => (decimal?)b.Amount)
+                    .FirstOrDefault() ?? a.StartingPrice,
             EndTime = a.EndTime,
             CategoryId = a.CategoryId,
             CityId = a.CityId
@@ -65,10 +67,12 @@ public static class AuctionMappingExtensions
             ProductDescription = a.ProductDescription,
             ProductCondition = a.ProductCondition,
             MinBidIncrement = a.MinBidIncrement,
-            CurrentPrice = a.Bids!
-                .OrderByDescending(b => b.Amount)
-                .Select(b => (decimal?)b.Amount)
-                .FirstOrDefault() ?? a.StartingPrice,
+            CurrentPrice = a.WinnerId.HasValue ?
+                a.Bids!.Where(b => b.IsAccepted).Select(b => b.Amount).Single()
+                :
+                a.Bids!.OrderByDescending(b => b.Amount)
+                    .Select(b => (decimal?)b.Amount)
+                    .FirstOrDefault() ?? a.StartingPrice,
             StartTime = a.StartTime,
             EndTime = a.EndTime,
             Category = a.Category!.Name,
@@ -92,10 +96,12 @@ public static class AuctionMappingExtensions
             Id = a.Id,
             ProductName = a.ProductName,
             ThumbnailUrl = a.ThumbnailUrl,
-            CurrentPrice = a.Bids!
-                .OrderByDescending(b => b.Amount)
-                .Select(b => (decimal?)b.Amount)
-                .FirstOrDefault() ?? a.StartingPrice,
+            CurrentPrice = a.WinnerId.HasValue ?
+                a.Bids!.Where(b => b.IsAccepted).Select(b => b.Amount).Single()
+                :
+                a.Bids!.OrderByDescending(b => b.Amount)
+                    .Select(b => (decimal?)b.Amount)
+                    .FirstOrDefault() ?? a.StartingPrice,
             EndTime = a.EndTime,
             IsActive = a.EndTime > DateTimeOffset.UtcNow,
             IsUserWon = a.IsActive ? null : a.WinnerId == userId
