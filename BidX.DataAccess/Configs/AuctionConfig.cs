@@ -25,6 +25,7 @@ public class AuctionConfig : IEntityTypeConfiguration<Auction>
         builder.Property(a => a.MinBidIncrement)
         .HasPrecision(18, 0);
 
+        // Needed for GetAuctions() for filtering to get Active auctions only
         builder.HasIndex(a => a.EndTime);
 
         builder.HasMany(a => a.Bids)
