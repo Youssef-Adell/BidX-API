@@ -3,22 +3,70 @@ using BidX.BusinessLogic.DTOs.BidDTOs;
 using BidX.BusinessLogic.DTOs.ChatDTOs;
 using BidX.BusinessLogic.DTOs.CommonDTOs;
 
-namespace BidXesentation.Hubs;
+namespace BidX.Presentation.Hubs;
 
 public interface IHubClient
 {
-    Task BidCreated(BidResponse createdBid); // Triggerd only for clients who currently in a specific auction room
-    Task BidAccepted(BidResponse acceptedBid); // Triggerd only for clients who currently in a specific auction room
+    /// <summary>
+    /// Triggerd only for clients who currently in a specific auction room
+    /// </summary>
+    Task BidPlaced(BidResponse response);
 
-    Task AuctionCreated(AuctionResponse createdAuction); // Triggerd for clients who currently in the Feed room
-    Task AuctionDeleted(AuctionDeletedResponse deletedAuctionId);  // Triggerd for for clients who currently in the Feed room
-    Task AuctionEnded(AuctionEndedResponse endedAuction);  // Triggerd for clients who currently in the Feed room
-    Task AuctionPriceUpdated(AuctionPriceUpdatedResponse auctionIdWithNewPrice);  // Triggerd for clients who currently in the Feed room
+    /// <summary>
+    /// Triggerd only for clients who currently in a specific auction room
+    /// </summary>
+    Task BidAccepted(BidResponse response);
 
-    Task MessageReceived(MessageResponse receivedMessage); // Triggerd for sender & receiver who currently in a specific chat room
-    Task MessagesSeen(); // Triggerd for the sender client who currently in a specific chat room
-    Task UserStatusChanged(UserStatusResponse userStatus); // Triggerd for any client currently in a chat room with this user 
-    Task MessageReceivedNotification(); // Triggerd for any client got a new message
 
-    Task ErrorOccurred(ErrorResponse error); // Triggerd for the caller client only if there is an error
+    /// <summary>
+    /// Triggerd for clients who currently in the Feed room
+    /// </summary>
+    Task AuctionCreated(AuctionResponse response);
+
+    /// <summary>
+    /// Triggerd for for clients who currently in the Feed room
+    /// </summary>
+    Task AuctionDeleted(AuctionDeletedResponse response);
+
+    /// <summary>
+    /// Triggerd for clients who currently in the Feed room
+    /// </summary>
+    Task AuctionEnded(AuctionEndedResponse response);
+
+    /// <summary>
+    /// Triggerd for clients who currently in the Feed room
+    /// </summary>
+    Task AuctionPriceUpdated(AuctionPriceUpdatedResponse response);
+
+
+    /// <summary>
+    /// Triggerd for sender and receiver who currently in a specific chat room
+    /// </summary>
+    Task MessageReceived(MessageResponse response);
+
+    /// <summary>
+    /// Triggerd for sender and receiver who currently in a specific chat room
+    /// </summary>
+    Task AllMessagesRead(AllMessagesReadResponse response);
+
+    /// <summary>
+    /// Triggerd for sender and receiver who currently in a specific chat room
+    /// </summary>
+    Task MessageRead(MessageReadResponse response);
+
+    /// <summary>
+    /// Triggerd for any client currently in a chat room with this user 
+    /// </summary>
+    Task UserStatusChanged(UserStatusResponse userStatus);
+
+    /// <summary>
+    /// Triggerd for any client got a new message
+    /// </summary>
+    Task UnreadChatsCountChanged(UnreadChatsCountResponse response);
+
+
+    /// <summary>
+    /// Triggerd for the caller client only if there is an error
+    /// </summary>
+    Task ErrorOccurred(ErrorResponse error);
 }

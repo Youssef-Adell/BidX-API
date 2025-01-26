@@ -6,7 +6,7 @@ using BidX.Presentation.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace BidXesentation;
+namespace BidX.Presentation;
 
 [ApiController]
 [Route("api/chats")]

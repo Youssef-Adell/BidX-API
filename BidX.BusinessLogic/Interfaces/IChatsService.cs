@@ -10,7 +10,8 @@ public interface IChatsService
     Task<Result<ChatSummeryResponse>> CreateChatOrGetIfExist(int callerId, CreateChatRequest request);
     Task<Result<ChatSummeryResponse>> GetChat(int callerId, int chatId);
     Task<Result<Page<MessageResponse>>> GetChatMessages(int callerId, int chatId, MessagesQueryParams queryParams);
-    Task<Result<MessageResponse>> SendMessage(int senderId, SendMessageRequest request);
-    Task<IEnumerable<int>> ChangeUserStatus(int userId, bool isOnline);
-    Task<bool> HasUnreadMessages(int userId);
+    Task SendMessage(int senderId, SendMessageRequest request);
+    Task MarkMessageAsRead(int readerId, MarkMessageAsReadRequest request);
+    Task NotifyUserWithUnreadChatsCount(int userId);
+    Task NotifyParticipantsWithUserStatus(int userId, bool isOnline);
 }

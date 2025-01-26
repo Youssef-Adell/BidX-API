@@ -1,7 +1,7 @@
 using BidX.DataAccess;
 using BidX.DataAccess.Entites;
 using BidX.Presentation.Utils;
-using BidXesentation.Hubs;
+using BidX.Presentation.Hubs;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Serilog;

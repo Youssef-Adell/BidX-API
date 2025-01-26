@@ -12,10 +12,12 @@ namespace BidX.BusinessLogic.Services;
 public class ChatsService : IChatsService
 {
     private readonly AppDbContext appDbContext;
+    private readonly IRealTimeService realTimeService;
 
-    public ChatsService(AppDbContext appDbContext)
+    public ChatsService(AppDbContext appDbContext, IRealTimeService realTimeService)
     {
         this.appDbContext = appDbContext;
+        this.realTimeService = realTimeService;
     }
 
     public async Task<Page<ChatDetailsResponse>> GetUserChats(int userId, ChatsQueryParams queryParams)
@@ -51,13 +53,13 @@ public class ChatsService : IChatsService
 
     public async Task<Result<ChatSummeryResponse>> GetChat(int callerId, int chatId)
     {
-       var chat = await appDbContext.Chats
-            .Where(c=>c.Id == chatId && (c.Participant1Id == callerId || c.Participant2Id == callerId))
-            .ProjectToChatSummaryResponse(callerId)
-            .FirstOrDefaultAsync();
-        
-        if(chat is null)
-                return Result<ChatSummeryResponse>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Chat not found."]);
+        var chat = await appDbContext.Chats
+             .Where(c => c.Id == chatId && (c.Participant1Id == callerId || c.Participant2Id == callerId))
+             .ProjectToChatSummaryResponse(callerId)
+             .FirstOrDefaultAsync();
+
+        if (chat is null)
+            return Result<ChatSummeryResponse>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Chat not found."]);
 
         return Result<ChatSummeryResponse>.Success(chat);
     }
@@ -93,7 +95,7 @@ public class ChatsService : IChatsService
         return Result<Page<MessageResponse>>.Success(page);
     }
 
-    public async Task<Result<MessageResponse>> SendMessage(int senderId, SendMessageRequest request)
+    public async Task SendMessage(int senderId, SendMessageRequest request)
     {
         var chat = await appDbContext.Chats
             .Where(c => c.Id == request.ChatId && (c.Participant1Id == senderId || c.Participant2Id == senderId))
@@ -101,18 +103,54 @@ public class ChatsService : IChatsService
             .FirstOrDefaultAsync();
 
         if (chat is null)
-            return Result<MessageResponse>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Chat not found."]);
+        {
+            await realTimeService.SendErrorToUser(senderId, ErrorCode.RESOURCE_NOT_FOUND, ["Chat not found."]);
+            return;
+        }
 
         // Create and save the message
         var message = request.ToMessageEntity(senderId, chat.ParticipantId);
         appDbContext.Messages.Add(message);
         await appDbContext.SaveChangesAsync();
 
+        // Send the message to the chat
         var response = message.ToMessageResponse();
-        return Result<MessageResponse>.Success(response);
+        await Task.WhenAll(
+            realTimeService.SendMessageToChat(response.ChatId, response),
+            NotifyUserWithUnreadChatsCount(response.RecipientId)
+        );
+    }
+    public async Task MarkMessageAsRead(int readerId, MarkMessageAsReadRequest request)
+    {
+        var message = await appDbContext.Messages
+            .Where(m => m.Id == request.MessageId && m.RecipientId == readerId)
+            .Select(m => new { m.Id, m.ChatId })
+            .FirstOrDefaultAsync();
+
+        if (message == null)
+        {
+            await realTimeService.SendErrorToUser(readerId, ErrorCode.RESOURCE_NOT_FOUND, ["Message not found."]);
+            return;
+        }
+
+        await appDbContext.Messages
+            .Where(m => m.Id == request.MessageId)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(m => m.IsRead, true));
+
+        await realTimeService.MarkMessageAsRead(message.ChatId, message.Id);
     }
 
-    public async Task<IEnumerable<int>> ChangeUserStatus(int userId, bool isOnline)
+    public async Task NotifyUserWithUnreadChatsCount(int userId)
+    {
+        var unreadChatsCount = await appDbContext.Messages
+            .Where(m => m.RecipientId == userId && m.IsRead == false)
+            .GroupBy(m => m.ChatId)
+            .CountAsync();
+
+        await realTimeService.NotifyUserWithUnreadChatsCount(userId, unreadChatsCount);
+    }
+
+    public async Task NotifyParticipantsWithUserStatus(int userId, bool isOnline)
     {
         await appDbContext.Users
             .Where(u => u.Id == userId)
@@ -125,23 +163,17 @@ public class ChatsService : IChatsService
             .Select(c => c.Id)
             .ToListAsync();
 
-        return chatIdsToNotify;
-    }
-
-    public async Task<bool> HasUnreadMessages(int userId)
-    {
-        var hasUnreadMessages = await appDbContext.Messages
-            .AnyAsync(m => m.RecipientId == userId && m.IsRead == false);
-
-        return hasUnreadMessages;
+        await realTimeService.NotifyParticipantsWithUserStatus(chatIdsToNotify, userId, isOnline);
     }
 
 
-    private async Task MarkReceivedMessagesAsRead(int recipientId, int chatId)
+    private async Task MarkReceivedMessagesAsRead(int readerId, int chatId)
     {
         await appDbContext.Messages
-            .Where(m => m.ChatId == chatId && m.RecipientId == recipientId)
+            .Where(m => m.ChatId == chatId && m.RecipientId == readerId)
             .ExecuteUpdateAsync(setters => setters.SetProperty(m => m.IsRead, true));
+
+        await realTimeService.MarkAllMessagesAsRead(chatId, readerId);
     }
 
     private async Task<ChatSummeryResponse?> GetChatIfExist(int participant1Id, int participant2Id)
@@ -159,9 +191,9 @@ public class ChatsService : IChatsService
         // Check chatting eligibility
         var hasDealtWithUserBefore = await appDbContext.Auctions.AnyAsync(a =>
             (a.WinnerId == callerId && a.AuctioneerId == request.ParticipantId) ||
-            (a.AuctioneerId == request.ParticipantId && a.WinnerId == callerId));
+            (a.AuctioneerId == callerId && a.WinnerId == request.ParticipantId));
 
-        if(!hasDealtWithUserBefore)
+        if (!hasDealtWithUserBefore)
             return Result<ChatSummeryResponse>.Failure(ErrorCode.CHATTING_NOT_ALLOWED, ["You cannot chat with a user you have not dealt with before."]);
 
         var participant = await appDbContext.Users
@@ -171,6 +203,7 @@ public class ChatsService : IChatsService
         if (participant == null)
             return Result<ChatSummeryResponse>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Participant not found."]);
 
+        // Save the chat into the the database
         var chat = request.ToChatEntity(callerId);
         appDbContext.Chats.Add(chat);
         await appDbContext.SaveChangesAsync();

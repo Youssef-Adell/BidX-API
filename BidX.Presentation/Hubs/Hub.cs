@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 
 
-namespace BidXesentation.Hubs;
+namespace BidX.Presentation.Hubs;
 
 public class Hub : Hub<IHubClient>
 {
@@ -23,8 +23,8 @@ public class Hub : Hub<IHubClient>
     {
         if (int.TryParse(Context.UserIdentifier, out int userId))
         {
-            await NotifyUserIfHasUnreadMessages(userId);
-            await NotifyChatParticipantsWithUserStatus(userId, isOnline: true);
+            await chatsService.NotifyUserWithUnreadChatsCount(userId);
+            await chatsService.NotifyParticipantsWithUserStatus(userId, isOnline: true);
         }
 
         await base.OnConnectedAsync();
@@ -34,7 +34,7 @@ public class Hub : Hub<IHubClient>
     {
         if (int.TryParse(Context.UserIdentifier, out int userId))
         {
-            await NotifyChatParticipantsWithUserStatus(userId, isOnline: false);
+            await chatsService.NotifyParticipantsWithUserStatus(userId, isOnline: false);
         }
 
         await base.OnDisconnectedAsync(exception);
@@ -46,32 +46,30 @@ public class Hub : Hub<IHubClient>
     {
         var userId = int.Parse(Context.UserIdentifier!);
 
-        var result = await chatsService.SendMessage(userId, request);
-
-        if (!result.Succeeded)
-        {
-            await Clients.Caller.ErrorOccurred(result.Error!);
-            return;
-        }
-
-        var createdMessage = result.Response!;
-        var groupName = $"CHAT#{createdMessage.ChatId}";
-
-        await Clients.Group(groupName).MessageReceived(createdMessage);
-        await Clients.User($"{createdMessage.RecipientId}").MessageReceivedNotification();
+        await chatsService.SendMessage(userId, request);
     }
 
-    // The client must call this method when the chat page loaded to be able to receive messages updates in realtime
+    [Authorize]
+    public async Task MarkMessageAsRead(MarkMessageAsReadRequest request)
+    {
+        var userId = int.Parse(Context.UserIdentifier!);
+
+        await chatsService.MarkMessageAsRead(userId, request);
+    }
+
+    /// <summary>
+    /// The client must call this method when the chat page loaded to be able to receive messages updates in realtime
+    /// </summary>
     [Authorize]
     public async Task JoinChatRoom(JoinChatRoomRequest request)
     {
         var groupName = $"CHAT#{request.ChatId}";
-
-        await Clients.Group(groupName).MessagesSeen(); // If the other user is currently in the chat page he will be notified that his messages seen
         await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
     }
 
-    // The client must call this method when the chat page loaded is about to be closed to stop receiving unnecessary messages updates
+    /// <summary>
+    /// The client must call this method when the chat page loaded is about to be closed to stop receiving unnecessary messages updates
+    /// </summary>
     public async Task LeaveChatRoom(LeaveChatRoomRequest request)
     {
         var groupName = $"CHAT#{request.ChatId}";
@@ -84,19 +82,7 @@ public class Hub : Hub<IHubClient>
     {
         var userId = int.Parse(Context.UserIdentifier!);
 
-        var result = await bidsService.PlaceBid(userId, request);
-
-        if (!result.Succeeded)
-        {
-            await Clients.Caller.ErrorOccurred(result.Error!);
-            return;
-        }
-
-        var createdBid = result.Response!;
-        var auctionGroup = createdBid.AuctionId.ToString();
-
-        await Clients.Group(auctionGroup).BidCreated(createdBid); // Notify clients who currently in the page of this auction
-        await Clients.Group("FEED").AuctionPriceUpdated(new() { AuctionId = createdBid.AuctionId, NewPrice = createdBid.Amount });
+        await bidsService.PlaceBid(userId, request);
     }
 
     [Authorize]
@@ -104,61 +90,43 @@ public class Hub : Hub<IHubClient>
     {
         var userId = int.Parse(Context.UserIdentifier!);
 
-        var result = await bidsService.AcceptBid(userId, request);
-
-        if (!result.Succeeded)
-        {
-            await Clients.Caller.ErrorOccurred(result.Error!);
-            return;
-        }
-
-        var acceptedBid = result.Response!;
-        var auctionGroup = acceptedBid.AuctionId.ToString();
-
-        await Clients.Group(auctionGroup).BidAccepted(acceptedBid); // Notify clients who currently in the page of this auction
-        await Clients.Group("FEED").AuctionEnded(new() { AuctionId = acceptedBid.AuctionId, FinalPrice = acceptedBid.Amount });
+        await bidsService.AcceptBid(userId, request);
     }
 
-    // The client must call this method when the auction page loads to be able to receive bidding updates in realtime
+    /// <summary>
+    /// The client must call this method when the auction page loads to be able to receive bidding updates in realtime
+    /// </summary>
     public async Task JoinAuctionRoom(JoinAuctionRoomRequest request)
     {
-        await Groups.AddToGroupAsync(Context.ConnectionId, request.AuctionId.ToString());
+        var groupName = $"AUCTION#{request.AuctionId}";
+        await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
     }
 
-    // The client must call this method when the auction page is about to be closed to stop receiving unnecessary bidding updates
+    /// <summary>
+    /// The client must call this method when the auction page is about to be closed to stop receiving unnecessary bidding updates
+    /// </summary>
     public async Task LeaveAuctionRoom(LeaveAuctionRoomRequest request)
     {
-        await Groups.RemoveFromGroupAsync(Context.ConnectionId, request.AuctionId.ToString());
+        var groupName = $"AUCTION#{request.AuctionId}";
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupName);
     }
 
 
-    // The client must call this method when the auctions feed page loads to be able to receive feed updates in realtime
+    /// <summary>
+    /// The client must call this method when the auctions feed page loads to be able to receive feed updates in realtime
+    /// </summary>
     public async Task JoinFeedRoom()
     {
-        await Groups.AddToGroupAsync(Context.ConnectionId, "FEED");
+        var groupName = "FEED";
+        await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
     }
 
-    // The client must call this method when the auctions feed page is about to be closed to stop receiving unnecessary feed updates
+    /// <summary>
+    /// The client must call this method when the auctions feed page is about to be closed to stop receiving unnecessary feed updates
+    /// </summary>
     public async Task LeaveFeedRoom()
     {
-        await Groups.RemoveFromGroupAsync(Context.ConnectionId, "FEED");
-    }
-
-
-    private async Task NotifyUserIfHasUnreadMessages(int userId)
-    {
-        var hasUnreadMessages = await chatsService.HasUnreadMessages(userId);
-
-        if (hasUnreadMessages)
-            await Clients.Caller.MessageReceivedNotification();
-    }
-
-    private async Task NotifyChatParticipantsWithUserStatus(int userId, bool isOnline)
-    {
-        var chatIdsToNotify = await chatsService.ChangeUserStatus(userId, isOnline);
-
-        var groupNames = chatIdsToNotify.Select(chatId => $"CHAT#{chatId}");
-
-        await Clients.Groups(groupNames).UserStatusChanged(new() { UserId = userId, IsOnline = isOnline });
+        var groupName = "FEED";
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupName);
     }
 }

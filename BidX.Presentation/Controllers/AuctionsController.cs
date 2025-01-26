@@ -4,14 +4,11 @@ using BidX.BusinessLogic.DTOs.CommonDTOs;
 using BidX.BusinessLogic.DTOs.QueryParamsDTOs;
 using BidX.BusinessLogic.Interfaces;
 using BidX.Presentation.Utils;
-using BidXesentation.Hubs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.SignalR;
-using Hub = BidXesentation.Hubs.Hub;
 
 
-namespace BidXesentation.Controllers;
+namespace BidX.Presentation.Controllers;
 
 [ApiController]
 [Route("api/auctions")]
@@ -20,12 +17,10 @@ namespace BidXesentation.Controllers;
 public class AuctionsController : ControllerBase
 {
     private readonly IAuctionsService auctionsService;
-    private readonly IHubContext<Hub, IHubClient> hubContext;
 
-    public AuctionsController(IAuctionsService auctionsService, IHubContext<Hub, IHubClient> hubContext)
+    public AuctionsController(IAuctionsService auctionsService)
     {
         this.auctionsService = auctionsService;
-        this.hubContext = hubContext;
     }
 
 
@@ -53,9 +48,6 @@ public class AuctionsController : ControllerBase
     }
 
 
-    /// <summary>
-    /// Triggers "AuctionCreated" event for clients who currently in the Feed room
-    /// </summary>
     [HttpPost]
     [Authorize]
     [ProducesResponseType(typeof(AuctionDetailsResponse), StatusCodes.Status201Created)]
@@ -74,11 +66,7 @@ public class AuctionsController : ControllerBase
             if (!result.Succeeded)
                 return UnprocessableEntity(result.Error);
 
-            await hubContext.Clients.Group("FEED").AuctionCreated(result.Response!);
-
-            var createdAuction = (await auctionsService.GetAuction(result.Response!.Id)).Response!;
-
-            return CreatedAtAction(nameof(GetAuction), new { id = createdAuction.Id }, createdAuction);
+            return CreatedAtAction(nameof(GetAuction), new { id = result.Response!.Id }, result.Response);
         }
         finally
         {   // Even if return is called within the try block, the finally block will still be executed.
@@ -89,9 +77,6 @@ public class AuctionsController : ControllerBase
     }
 
 
-    /// <summary>
-    /// Triggers "AuctionDeleted" event for clients who currently in the Feed room
-    /// </summary>
     [HttpDelete("{id}")]
     [Authorize]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -104,8 +89,6 @@ public class AuctionsController : ControllerBase
 
         if (!result.Succeeded)
             return NotFound(result.Error);
-
-        await hubContext.Clients.Group("FEED").AuctionDeleted(new() { AuctionId = id });
 
         return NoContent();
     }

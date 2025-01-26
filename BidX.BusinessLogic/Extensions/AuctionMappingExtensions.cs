@@ -19,7 +19,7 @@ public static class AuctionMappingExtensions
             CategoryId = request.CategoryId,
             CityId = request.CityId,
             AuctioneerId = auctioneerId,
-            ThumbnailUrl = string.Empty // will be reseted by the AuctionService
+            ThumbnailUrl = string.Empty // will be re setted by the AuctionService
         };
     }
 
@@ -73,13 +73,15 @@ public static class AuctionMappingExtensions
             EndTime = a.EndTime,
             Category = a.Category!.Name,
             City = a.City!.Name,
-            ProductImages = a.ProductImages!.Select(i=>i.Url),
-            Auctioneer = new Auctioneer{
+            ProductImages = a.ProductImages!.Select(i => i.Url),
+            Auctioneer = new Auctioneer
+            {
                 Id = a.Auctioneer!.Id,
                 FullName = a.Auctioneer.FullName,
                 ProfilePictureUrl = a.Auctioneer.ProfilePictureUrl,
                 AverageRating = a.Auctioneer.AverageRating
             },
+            WinnerId = a.WinnerId
         });
     }
 

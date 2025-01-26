@@ -13,10 +13,12 @@ namespace BidX.BusinessLogic.Services;
 public class BidsService : IBidsService
 {
     private readonly AppDbContext appDbContext;
+    private readonly IRealTimeService realTimeService;
 
-    public BidsService(AppDbContext appDbContext)
+    public BidsService(AppDbContext appDbContext, IRealTimeService realTimeService)
     {
         this.appDbContext = appDbContext;
+        this.realTimeService = realTimeService;
     }
 
     public async Task<Result<Page<BidResponse>>> GetAuctionBids(int auctionId, BidsQueryParams queryParams)
@@ -92,24 +94,31 @@ public class BidsService : IBidsService
         return Result<BidResponse>.Success(highestBid);
     }
 
-    public async Task<Result<BidResponse>> PlaceBid(int bidderId, BidRequest request)
+    public async Task PlaceBid(int bidderId, BidRequest request)
     {
         var validationResult = await ValidateBidPlacement(bidderId, request.AuctionId, request.Amount);
         if (!validationResult.Succeeded)
-            return Result<BidResponse>.Failure(validationResult.Error!);
+        {
+            await realTimeService.SendErrorToUser(bidderId, validationResult.Error!);
+            return;
+        }
 
         // Create and save the bid
         var bid = request.ToBidEntity(bidderId);
         appDbContext.Bids.Add(bid);
         await appDbContext.SaveChangesAsync();
 
+        // Map Bid to BidResponse
         await appDbContext.Entry(bid).Reference(b => b.Bidder).LoadAsync();
-
         var response = bid.ToBidResponse();
-        return Result<BidResponse>.Success(response);
-    }
 
-    public async Task<Result<BidResponse>> AcceptBid(int callerId, AcceptBidRequest request)
+        // Send the updates via the realtime connection
+        await Task.WhenAll(
+            realTimeService.SendPlacedBidToAuctionRoom(response.AuctionId, response),
+            realTimeService.UpdateAuctionPriceInFeed(response.AuctionId, response.Amount)
+        );
+    }
+    public async Task AcceptBid(int callerId, AcceptBidRequest request)
     {
         var bid = await appDbContext.Bids
             .Include(b => b.Auction)
@@ -118,13 +127,20 @@ public class BidsService : IBidsService
 
         var validationResult = ValidateBidAcceptance(callerId, bid);
         if (!validationResult.Succeeded)
-            return Result<BidResponse>.Failure(validationResult.Error!);
+        {
+            await realTimeService.SendErrorToUser(callerId, validationResult.Error!);
+            return;
+        }
 
         AcceptBidAndEndAuction(bid!);
         await appDbContext.SaveChangesAsync();
 
+        // Send the updates via the realtime connection
         var response = bid!.ToBidResponse();
-        return Result<BidResponse>.Success(response);
+        await Task.WhenAll(
+            realTimeService.SendAcceptedBidToAuctionRoom(response.AuctionId, response),
+            realTimeService.MarkAuctionAsEndedInFeed(response.AuctionId, response.Amount)
+        );
     }
 
 
