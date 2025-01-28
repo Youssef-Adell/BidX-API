@@ -1,5 +1,6 @@
 using BidX.BusinessLogic.DTOs.BidDTOs;
 using BidX.BusinessLogic.DTOs.CommonDTOs;
+using BidX.BusinessLogic.DTOs.NotificationDTOs;
 using BidX.BusinessLogic.DTOs.QueryParamsDTOs;
 using BidX.BusinessLogic.Extensions;
 using BidX.BusinessLogic.Interfaces;
@@ -14,11 +15,13 @@ public class BidsService : IBidsService
 {
     private readonly AppDbContext appDbContext;
     private readonly IRealTimeService realTimeService;
+    private readonly INotificationsService notificationsService;
 
-    public BidsService(AppDbContext appDbContext, IRealTimeService realTimeService)
+    public BidsService(AppDbContext appDbContext, IRealTimeService realTimeService, INotificationsService notificationsService)
     {
         this.appDbContext = appDbContext;
         this.realTimeService = realTimeService;
+        this.notificationsService = notificationsService;
     }
 
     public async Task<Result<Page<BidResponse>>> GetAuctionBids(int auctionId, BidsQueryParams queryParams)
@@ -96,28 +99,76 @@ public class BidsService : IBidsService
 
     public async Task PlaceBid(int bidderId, BidRequest request)
     {
-        var validationResult = await ValidateBidPlacement(bidderId, request.AuctionId, request.Amount);
+        var auctionInfo = await appDbContext.Auctions
+            .AsNoTracking()
+            .Where(a => a.Id == request.AuctionId)
+            .Select(a => new
+            {
+                a.ProductName,
+                a.AuctioneerId,
+                a.MinBidIncrement,
+                a.EndTime,
+                a.StartingPrice,
+                HighestBid = a.Bids!
+                    .OrderByDescending(b => b.Amount)
+                    .Select(b => new { b.BidderId, b.Amount })
+                    .FirstOrDefault(),
+                CurrentBidder = appDbContext.Users
+                    .Where(u => u.Id == bidderId)
+                    .Select(u => new { u!.FullName, u.ProfilePictureUrl, u.AverageRating })
+                    .Single()
+            })
+            .SingleOrDefaultAsync();
+
+
+        // Validate
+        if (auctionInfo is null)
+        {
+            await realTimeService.SendErrorToUser(bidderId, ErrorCode.RESOURCE_NOT_FOUND, ["Auction not found."]);
+            return;
+        }
+
+        var validationResult = ValidateBidPlacement(
+            auctionEndTime: auctionInfo.EndTime,
+            auctionStartingPrice: auctionInfo.StartingPrice,
+            highestBidAmount: auctionInfo.HighestBid?.Amount,
+            auctionMinBidIncrement: auctionInfo.MinBidIncrement,
+            auctioneerId: auctionInfo.AuctioneerId,
+            bidderId: bidderId,
+            bidAmount: request.Amount);
+
         if (!validationResult.Succeeded)
         {
             await realTimeService.SendErrorToUser(bidderId, validationResult.Error!);
             return;
         }
 
+
         // Create and save the bid
         var bid = request.ToBidEntity(bidderId);
         appDbContext.Bids.Add(bid);
         await appDbContext.SaveChangesAsync();
 
-        // Map Bid to BidResponse
-        await appDbContext.Entry(bid).Reference(b => b.Bidder).LoadAsync();
-        var response = bid.ToBidResponse();
 
-        // Send the updates via the realtime connection
+        // Send the realtime updates and notifications
+        var response = bid.ToBidResponse(
+            auctionInfo.CurrentBidder.FullName,
+            auctionInfo.CurrentBidder.ProfilePictureUrl,
+            auctionInfo.CurrentBidder.AverageRating);
+
         await Task.WhenAll(
             realTimeService.SendPlacedBidToAuctionRoom(response.AuctionId, response),
-            realTimeService.UpdateAuctionPriceInFeed(response.AuctionId, response.Amount)
+            realTimeService.UpdateAuctionPriceInFeed(response.AuctionId, response.Amount),
+            notificationsService.NotifyNewBid(
+                auctionId: request.AuctionId,
+                auctionTitle: auctionInfo.ProductName,
+                bidAmount: response.Amount,
+                bidderId: bidderId,
+                auctioneerId: auctionInfo.AuctioneerId,
+                previousHighestBidderId: auctionInfo.HighestBid?.BidderId)
         );
     }
+
     public async Task AcceptBid(int callerId, AcceptBidRequest request)
     {
         var bid = await appDbContext.Bids
@@ -144,37 +195,21 @@ public class BidsService : IBidsService
     }
 
 
-    private async Task<Result> ValidateBidPlacement(int bidderId, int auctionId, decimal bidAmount)
+    private Result ValidateBidPlacement(DateTimeOffset auctionEndTime, decimal auctionStartingPrice, decimal? highestBidAmount, decimal auctionMinBidIncrement, int auctioneerId, int bidderId, decimal bidAmount)
     {
-        // Load only the necessary auction information
-        var auctionInfo = await appDbContext.Auctions
-            .AsNoTracking()
-            .Select(a => new
-            {
-                a.Id,
-                a.AuctioneerId,
-                a.MinBidIncrement,
-                a.EndTime,
-                CurrentPrice = a.Bids!.OrderByDescending(b => b.Amount)
-                    .Select(b => (decimal?)b.Amount)
-                    .FirstOrDefault() ?? a.StartingPrice
-            })
-            .SingleOrDefaultAsync(x => x.Id == auctionId);
+        var auctionCurrentPrice = highestBidAmount ?? auctionStartingPrice;
 
-        if (auctionInfo is null)
-            return Result.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["Auction not found."]);
-
-        if (auctionInfo.AuctioneerId == bidderId)
+        if (auctioneerId == bidderId)
             return Result.Failure(ErrorCode.BIDDING_NOT_ALLOWED, ["Auctioneer cannot bid on their own auction."]);
 
-        if (auctionInfo.EndTime.CompareTo(DateTimeOffset.UtcNow) < 0)
+        if (auctionEndTime.CompareTo(DateTimeOffset.UtcNow) < 0)
             return Result.Failure(ErrorCode.BIDDING_NOT_ALLOWED, ["Auction has ended."]);
 
-        if (bidAmount <= auctionInfo.CurrentPrice)
+        if (bidAmount <= auctionCurrentPrice)
             return Result.Failure(ErrorCode.BIDDING_NOT_ALLOWED, ["Bid amount must be greater than the current price."]);
 
-        if (bidAmount - auctionInfo.CurrentPrice < auctionInfo.MinBidIncrement)
-            return Result.Failure(ErrorCode.BIDDING_NOT_ALLOWED, [$"Bid increment must be greater than or equal to {auctionInfo.MinBidIncrement}."]);
+        if (bidAmount - auctionCurrentPrice < auctionMinBidIncrement)
+            return Result.Failure(ErrorCode.BIDDING_NOT_ALLOWED, [$"Bid increment must be greater than or equal to {auctionMinBidIncrement}."]);
 
         return Result.Success();
     }

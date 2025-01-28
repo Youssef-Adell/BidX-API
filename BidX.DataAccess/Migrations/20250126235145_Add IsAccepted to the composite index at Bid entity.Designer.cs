@@ -4,6 +4,7 @@ using BidX.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BidX.DataAccess.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250126235145_Add IsAccepted to the composite index at Bid entity")]
+    partial class AddIsAcceptedtothecompositeindexatBidentity
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -243,59 +246,6 @@ namespace BidX.DataAccess.Migrations
                         });
 
                     b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
-                });
-
-            modelBuilder.Entity("BidX.DataAccess.Entites.Notification", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<bool>("IsRead")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("IssuerId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Message")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("RedirectId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("RedirectTo")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("IssuerId");
-
-                    b.ToTable("Notification");
-                });
-
-            modelBuilder.Entity("BidX.DataAccess.Entites.NotificationRecipient", b =>
-                {
-                    b.Property<int>("RecipientId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("NotificationId")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("IsRead")
-                        .HasColumnType("bit");
-
-                    b.HasKey("RecipientId", "NotificationId");
-
-                    b.HasIndex("NotificationId");
-
-                    b.ToTable("NotificationRecipient");
                 });
 
             modelBuilder.Entity("BidX.DataAccess.Entites.ProductImage", b =>
@@ -693,33 +643,6 @@ namespace BidX.DataAccess.Migrations
                     b.Navigation("Sender");
                 });
 
-            modelBuilder.Entity("BidX.DataAccess.Entites.Notification", b =>
-                {
-                    b.HasOne("BidX.DataAccess.Entites.User", "Issuer")
-                        .WithMany()
-                        .HasForeignKey("IssuerId")
-                        .IsRequired();
-
-                    b.Navigation("Issuer");
-                });
-
-            modelBuilder.Entity("BidX.DataAccess.Entites.NotificationRecipient", b =>
-                {
-                    b.HasOne("BidX.DataAccess.Entites.Notification", "Notification")
-                        .WithMany("NotificationRecipients")
-                        .HasForeignKey("NotificationId")
-                        .IsRequired();
-
-                    b.HasOne("BidX.DataAccess.Entites.User", "Recipient")
-                        .WithMany()
-                        .HasForeignKey("RecipientId")
-                        .IsRequired();
-
-                    b.Navigation("Notification");
-
-                    b.Navigation("Recipient");
-                });
-
             modelBuilder.Entity("BidX.DataAccess.Entites.ProductImage", b =>
                 {
                     b.HasOne("BidX.DataAccess.Entites.Auction", null)
@@ -809,11 +732,6 @@ namespace BidX.DataAccess.Migrations
             modelBuilder.Entity("BidX.DataAccess.Entites.Chat", b =>
                 {
                     b.Navigation("Messages");
-                });
-
-            modelBuilder.Entity("BidX.DataAccess.Entites.Notification", b =>
-                {
-                    b.Navigation("NotificationRecipients");
                 });
 #pragma warning restore 612, 618
         }

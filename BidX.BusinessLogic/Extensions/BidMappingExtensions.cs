@@ -35,6 +35,24 @@ public static class BidMappingExtensions
             }
         };
     }
+    public static BidResponse ToBidResponse(this Bid bid, string bidderFullName, string? bidderProfilePictureUrl, decimal bidderAverageRating)
+    {
+        return new BidResponse
+        {
+            Id = bid.Id,
+            Amount = bid.Amount,
+            IsAccepted = bid.IsAccepted,
+            PlacedAt = bid.PlacedAt,
+            AuctionId = bid.AuctionId,
+            Bidder = new Bidder
+            {
+                Id = bid.BidderId,
+                FullName = bidderFullName,
+                ProfilePictureUrl = bidderProfilePictureUrl,
+                AverageRating = bidderAverageRating
+            }
+        };
+    }
 
     public static IQueryable<BidResponse> ProjectToBidResponse(this IQueryable<Bid> query)
     {

@@ -188,6 +188,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IChatsService, ChatsService>();
         services.AddScoped<IReviewsService, ReviewsService>();
         services.AddScoped<IRealTimeService, SignalrRealTimeService>();
+        services.AddScoped<INotificationsService, NotificationsService>();
 
         return services;
     }

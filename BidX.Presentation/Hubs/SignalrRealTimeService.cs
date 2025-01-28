@@ -61,6 +61,15 @@ public class SignalrRealTimeService : IRealTimeService
     #endregion
 
 
+    #region Notification
+    public async Task NotifyUserWithUnreadNotificationsCount(int userId, int unreadNotificationsCount)
+    {
+        await hubContext.Clients.User($"{userId}")
+            .UnreadNotificationsCountChanged(new() { UnreadNotificationsCount = unreadNotificationsCount });
+    }
+    #endregion
+
+
     #region Auction
     public async Task SendPlacedBidToAuctionRoom(int auctionId, BidResponse bid)
     {
