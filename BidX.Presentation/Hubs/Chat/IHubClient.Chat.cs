@@ -20,12 +20,12 @@ public partial interface IHubClient
     Task MessageRead(MessageReadResponse response);
 
     /// <summary>
+    /// Triggerd for any client got a new message
+    /// </summary>
+    Task UnreadChatsCountUpdated(UnreadChatsCountResponse response);
+
+    /// <summary>
     /// Triggerd for any client currently in a chat room with this user 
     /// </summary>
     Task UserStatusChanged(UserStatusResponse userStatus);
-
-    /// <summary>
-    /// Triggerd for any client got a new message
-    /// </summary>
-    Task UnreadChatsCountChanged(UnreadChatsCountResponse response);
 }

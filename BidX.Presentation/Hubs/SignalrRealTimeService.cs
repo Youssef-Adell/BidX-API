@@ -45,7 +45,7 @@ public class SignalrRealTimeService : IRealTimeService
     {
         await hubContext.Clients
             .User($"{userId}")
-            .UnreadChatsCountChanged(new() { UnreadChatsCount = unreadChatsCount });
+            .UnreadChatsCountUpdated(new() { UnreadChatsCount = unreadChatsCount });
     }
 
     public async Task NotifyParticipantsWithUserStatus(IEnumerable<int> chatsIds, int userId, bool isOnline)
@@ -65,7 +65,7 @@ public class SignalrRealTimeService : IRealTimeService
     public async Task NotifyUserWithUnreadNotificationsCount(int userId, int unreadNotificationsCount)
     {
         await hubContext.Clients.User($"{userId}")
-            .UnreadNotificationsCountChanged(new() { UnreadNotificationsCount = unreadNotificationsCount });
+            .UnreadNotificationsCountUpdated(new() { UnreadNotificationsCount = unreadNotificationsCount });
     }
     #endregion
 
