@@ -109,11 +109,11 @@ public class BidsService : IBidsService
                 a.MinBidIncrement,
                 a.EndTime,
                 a.StartingPrice,
-                HighestBid = a.Bids!
+                HighestBid = a.Bids! // Needed for validation and notification sending
                     .OrderByDescending(b => b.Amount)
                     .Select(b => new { b.BidderId, b.Amount })
                     .FirstOrDefault(),
-                CurrentBidder = appDbContext.Users
+                Bidder = appDbContext.Users // Needed to construct the BidResponse
                     .Where(u => u.Id == bidderId)
                     .Select(u => new { u!.FullName, u.ProfilePictureUrl, u.AverageRating })
                     .Single()
@@ -152,14 +152,14 @@ public class BidsService : IBidsService
 
         // Send the realtime updates and notifications
         var response = bid.ToBidResponse(
-            auctionInfo.CurrentBidder.FullName,
-            auctionInfo.CurrentBidder.ProfilePictureUrl,
-            auctionInfo.CurrentBidder.AverageRating);
+            auctionInfo.Bidder.FullName,
+            auctionInfo.Bidder.ProfilePictureUrl,
+            auctionInfo.Bidder.AverageRating);
 
         await Task.WhenAll(
             realTimeService.SendPlacedBidToAuctionRoom(response.AuctionId, response),
             realTimeService.UpdateAuctionPriceInFeed(response.AuctionId, response.Amount),
-            notificationsService.NotifyNewBid(
+            notificationsService.SendPlacedBidNotifications(
                 auctionId: request.AuctionId,
                 auctionTitle: auctionInfo.ProductName,
                 bidAmount: response.Amount,
@@ -171,26 +171,55 @@ public class BidsService : IBidsService
 
     public async Task AcceptBid(int callerId, AcceptBidRequest request)
     {
-        var bid = await appDbContext.Bids
+        var bidInfo = await appDbContext.Bids
+            .Where(b => b.Id == request.BidId)
             .Include(b => b.Auction)
-            .Include(b => b.Bidder) // Needed for BidResponse that will be returned
-            .SingleOrDefaultAsync(b => b.Id == request.BidId);
+            .Select(b => new
+            {
+                Bid = b,
+                Bidder = new // Needed for mapping to BidResponse
+                {
+                    b.Bidder!.FullName,
+                    b.Bidder.ProfilePictureUrl,
+                    b.Bidder.AverageRating,
+                    b.Bidder.Id
+                },
+                BidderIds = b.Auction!.Bids! // Needed for notifications sending
+                    .Select(b => b.BidderId)
+                    .Distinct()
+            })
+            .SingleOrDefaultAsync();
 
-        var validationResult = ValidateBidAcceptance(callerId, bid);
+
+        // Validate
+        var validationResult = ValidateBidAcceptance(callerId, bidInfo?.Bid);
         if (!validationResult.Succeeded)
         {
             await realTimeService.SendErrorToUser(callerId, validationResult.Error!);
             return;
         }
 
-        AcceptBidAndEndAuction(bid!);
+
+        // Accept and save
+        AcceptBidAndEndAuction(bidInfo!.Bid);
         await appDbContext.SaveChangesAsync();
 
-        // Send the updates via the realtime connection
-        var response = bid!.ToBidResponse();
+
+        // Send the realtime updates and notifications
+        var response = bidInfo.Bid.ToBidResponse(
+            bidInfo.Bidder!.FullName,
+            bidInfo.Bidder.ProfilePictureUrl,
+            bidInfo.Bidder.AverageRating);
+
         await Task.WhenAll(
             realTimeService.SendAcceptedBidToAuctionRoom(response.AuctionId, response),
-            realTimeService.MarkAuctionAsEndedInFeed(response.AuctionId, response.Amount)
+            realTimeService.MarkAuctionAsEndedInFeed(response.AuctionId, response.Amount),
+            notificationsService.SendAcceptedBidNotifications(
+                auctionId: bidInfo.Bid.Auction!.Id,
+                auctionTitle: bidInfo.Bid.Auction.ProductName,
+                winnerId: bidInfo.Bidder.Id,
+                auctioneerId: bidInfo.Bid.Auction.AuctioneerId,
+                biddersIds: bidInfo.BidderIds)
         );
     }
 
@@ -213,6 +242,7 @@ public class BidsService : IBidsService
 
         return Result.Success();
     }
+
 
     private Result ValidateBidAcceptance(int callerId, Bid? bid)
     {

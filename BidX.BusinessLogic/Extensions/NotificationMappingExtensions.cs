@@ -24,7 +24,7 @@ public static class NotificationMappingExtensions
         return query.Select(nr => new NotificationResponse
         {
             Id = nr.NotificationId,
-            Message = nr.Notification!.Message.Replace("{userName}", nr.Notification.Issuer!.FullName),
+            Message = nr.Notification!.Message.Replace("{issuerName}", nr.Notification.Issuer!.FullName),
             ThumbnailUrl = nr.Notification.Issuer.ProfilePictureUrl,
             RedirectTo = nr.Notification.RedirectTo,
             RedirectId = nr.Notification.RedirectId,

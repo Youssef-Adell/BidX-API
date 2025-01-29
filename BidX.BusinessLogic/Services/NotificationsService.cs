@@ -56,14 +56,14 @@ public class NotificationsService : INotificationsService
         await realTimeService.NotifyUserWithUnreadNotificationsCount(userId, unreadNotificationsCount);
     }
 
-    public async Task NotifyNewBid(int auctionId, string auctionTitle, decimal bidAmount, int bidderId, int auctioneerId, int? previousHighestBidderId)
+    public async Task SendPlacedBidNotifications(int auctionId, string auctionTitle, decimal bidAmount, int bidderId, int auctioneerId, int? previousHighestBidderId)
     {
         var notifications = new List<Notification>();
 
         // Notification for auctioneer
         notifications.Add(new Notification
         {
-            Message = $"**{{userName}}** placed a bid of **{bidAmount} EGP** on your auction **{auctionTitle}**", // **X** X will be formatted as bold in frontend
+            Message = $"**{{issuerName}}** placed a bid of **{bidAmount} EGP** on your **{auctionTitle}** auction", // **X** X will be formatted as bold in frontend
             RedirectTo = RedirectTo.AuctionPage,
             RedirectId = auctionId,
             IssuerId = bidderId,
@@ -77,7 +77,7 @@ public class NotificationsService : INotificationsService
         {
             notifications.Add(new Notification
             {
-                Message = $"**{{userName}}** outbid you with **{bidAmount} EGP** on auction **{auctionTitle}**",
+                Message = $"**{{issuerName}}** outbid you with **{bidAmount} EGP** on **{auctionTitle}** auction",
                 RedirectTo = RedirectTo.AuctionPage,
                 RedirectId = auctionId,
                 IssuerId = bidderId,
@@ -89,6 +89,43 @@ public class NotificationsService : INotificationsService
         await BulkInsertNotifications(notifications);
         await SendRealTimeNotifications(notifications);
     }
+
+    public async Task SendAcceptedBidNotifications(int auctionId, string auctionTitle, int winnerId, int auctioneerId, IEnumerable<int> bidderIds)
+    {
+        var notifications = new List<Notification>();
+
+        // Notification for the winner
+        notifications.Add(new Notification
+        {
+            Message = $"Congratulations! Your bid on **{auctionTitle}** has been accepted by **{{issuerName}}**",
+            RedirectTo = RedirectTo.AuctionPage,
+            RedirectId = auctionId,
+            IssuerId = auctioneerId,
+            CreatedAt = DateTimeOffset.UtcNow,
+            NotificationRecipients = [new() { RecipientId = winnerId }]
+        });
+
+        // Notification for other bidders
+        var otherBidders = bidderIds
+            .Distinct()
+            .Where(id => id != winnerId)
+            .Select(id => new NotificationRecipient { RecipientId = id })
+            .ToList();
+
+        notifications.Add(new Notification
+        {
+            Message = $"Better luck next time! **{{issuerName}}** won the **{auctionTitle}** auction",
+            RedirectTo = RedirectTo.AuctionPage,
+            RedirectId = auctionId,
+            IssuerId = winnerId,
+            CreatedAt = DateTimeOffset.UtcNow,
+            NotificationRecipients = otherBidders
+        });
+
+        await BulkInsertNotifications(notifications);
+        await SendRealTimeNotifications(notifications);
+    }
+
 
     private async Task BulkInsertNotifications(IEnumerable<Notification> notifications)
     {
