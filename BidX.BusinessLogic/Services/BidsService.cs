@@ -144,29 +144,36 @@ public class BidsService : IBidsService
         }
 
 
-        // Create and save the bid
-        var bid = request.ToBidEntity(bidderId);
-        appDbContext.Bids.Add(bid);
-        await appDbContext.SaveChangesAsync();
+        using var transaction = await appDbContext.Database.BeginTransactionAsync();
+        try
+        {
+            // Create and save the bid
+            var bid = request.ToBidEntity(bidderId);
+            appDbContext.Bids.Add(bid);
+            await appDbContext.SaveChangesAsync();
 
-
-        // Send the realtime updates and notifications
-        var response = bid.ToBidResponse(
-            auctionInfo.Bidder.FullName,
-            auctionInfo.Bidder.ProfilePictureUrl,
-            auctionInfo.Bidder.AverageRating);
-
-        await Task.WhenAll(
-            realTimeService.SendPlacedBidToAuctionRoom(response.AuctionId, response),
-            realTimeService.UpdateAuctionPriceInFeed(response.AuctionId, response.Amount),
-            notificationsService.SendPlacedBidNotifications(
+            // Send the notifications
+            await notificationsService.SendPlacedBidNotifications(
                 auctionId: request.AuctionId,
                 auctionTitle: auctionInfo.ProductName,
-                bidAmount: response.Amount,
+                bidAmount: bid.Amount,
                 bidderId: bidderId,
                 auctioneerId: auctionInfo.AuctioneerId,
-                previousHighestBidderId: auctionInfo.HighestBid?.BidderId)
-        );
+                previousHighestBidderId: auctionInfo.HighestBid?.BidderId);
+
+            // Send the realtime updates
+            var response = bid.ToBidResponse(auctionInfo.Bidder.FullName, auctionInfo.Bidder.ProfilePictureUrl, auctionInfo.Bidder.AverageRating);
+            await Task.WhenAll(
+                realTimeService.SendPlacedBidToAuctionRoom(response.AuctionId, response),
+                realTimeService.UpdateAuctionPriceInFeed(response.AuctionId, response.Amount));
+
+            await transaction.CommitAsync();
+        }
+        catch (Exception)
+        {
+            await transaction.RollbackAsync();
+            await realTimeService.SendErrorToUser(bidderId, ErrorCode.SERVER_INTENRAL_ERROR, ["An error occurred while placing the bid."]);
+        }
     }
 
     public async Task AcceptBid(int callerId, AcceptBidRequest request)
@@ -199,28 +206,34 @@ public class BidsService : IBidsService
             return;
         }
 
+        using var transaction = await appDbContext.Database.BeginTransactionAsync();
+        try
+        {
+            // Accept and save
+            AcceptBidAndEndAuction(bidInfo!.Bid);
+            await appDbContext.SaveChangesAsync();
 
-        // Accept and save
-        AcceptBidAndEndAuction(bidInfo!.Bid);
-        await appDbContext.SaveChangesAsync();
-
-
-        // Send the realtime updates and notifications
-        var response = bidInfo.Bid.ToBidResponse(
-            bidInfo.Bidder!.FullName,
-            bidInfo.Bidder.ProfilePictureUrl,
-            bidInfo.Bidder.AverageRating);
-
-        await Task.WhenAll(
-            realTimeService.SendAcceptedBidToAuctionRoom(response.AuctionId, response),
-            realTimeService.MarkAuctionAsEndedInFeed(response.AuctionId, response.Amount),
-            notificationsService.SendAcceptedBidNotifications(
+            // Send the notifications
+            await notificationsService.SendAcceptedBidNotifications(
                 auctionId: bidInfo.Bid.Auction!.Id,
                 auctionTitle: bidInfo.Bid.Auction.ProductName,
                 winnerId: bidInfo.Bidder.Id,
                 auctioneerId: bidInfo.Bid.Auction.AuctioneerId,
-                biddersIds: bidInfo.BidderIds)
-        );
+                biddersIds: bidInfo.BidderIds);
+
+            // Send the realtime updates
+            var response = bidInfo.Bid.ToBidResponse(bidInfo.Bidder!.FullName, bidInfo.Bidder.ProfilePictureUrl, bidInfo.Bidder.AverageRating);
+            await Task.WhenAll(
+                realTimeService.SendAcceptedBidToAuctionRoom(response.AuctionId, response),
+                realTimeService.MarkAuctionAsEndedInFeed(response.AuctionId, response.Amount));
+
+            await transaction.CommitAsync();
+        }
+        catch (Exception)
+        {
+            await transaction.RollbackAsync();
+            await realTimeService.SendErrorToUser(callerId, ErrorCode.SERVER_INTENRAL_ERROR, ["An error occurred while accepting the bid."]);
+        }
     }
 
 
