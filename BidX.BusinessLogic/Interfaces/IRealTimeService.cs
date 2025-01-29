@@ -2,6 +2,7 @@ using BidX.BusinessLogic.DTOs.AuctionDTOs;
 using BidX.BusinessLogic.DTOs.BidDTOs;
 using BidX.BusinessLogic.DTOs.ChatDTOs;
 using BidX.BusinessLogic.DTOs.CommonDTOs;
+using BidX.BusinessLogic.DTOs.NotificationDTOs;
 
 namespace BidX.BusinessLogic.Interfaces;
 
@@ -12,6 +13,8 @@ public interface IRealTimeService
     Task MarkMessageAsRead(int chatId, int messageId);
     Task NotifyUserWithUnreadChatsCount(int userId, int unreadChatsCount);
     Task NotifyParticipantsWithUserStatus(IEnumerable<int> chatsIds, int userId, bool isOnline);
+
+    Task NotifyUserWithUnreadNotificationsCount(int userId, int unreadNotificationsCount);
 
     Task SendPlacedBidToAuctionRoom(int auctionId, BidResponse bid);
     Task SendAcceptedBidToAuctionRoom(int auctionId, BidResponse bid);

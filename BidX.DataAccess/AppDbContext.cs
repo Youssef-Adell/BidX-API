@@ -18,6 +18,8 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<int>, int>
     public required DbSet<Chat> Chats { get; set; }
     public required DbSet<Message> Messages { get; set; }
     public required DbSet<Review> Reviews { get; set; }
+    public required DbSet<Notification> Notifications { get; set; }
+    public required DbSet<NotificationRecipient> NotificationRecipients { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
