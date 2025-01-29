@@ -1,5 +1,4 @@
 using BidX.BusinessLogic.DTOs.NotificationDTOs;
-using BidX.BusinessLogic.Interfaces;
 
 namespace BidX.Presentation.Hubs;
 
@@ -9,5 +8,11 @@ public partial class Hub
     {
         var userId = int.Parse(Context.UserIdentifier!);
         await notificationsService.MarkNotificationAsRead(userId, request.NotificationId);
+    }
+
+    public async Task MarkAllNotificationsAsRead()
+    {
+        var userId = int.Parse(Context.UserIdentifier!);
+        await notificationsService.MarkAllNotificationsAsRead(userId);
     }
 }

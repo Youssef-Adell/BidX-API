@@ -48,6 +48,13 @@ public class NotificationsService : INotificationsService
             .ExecuteUpdateAsync(setters => setters.SetProperty(nr => nr.IsRead, true));
     }
 
+    public async Task MarkAllNotificationsAsRead(int callerId)
+    {
+        await appDbContext.NotificationRecipients
+            .Where(nr => nr.RecipientId == callerId && !nr.IsRead)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(nr => nr.IsRead, true));
+    }
+
     public async Task NotifyUserWithUnreadNotificationsCount(int userId)
     {
         var unreadNotificationsCount = await appDbContext.NotificationRecipients
