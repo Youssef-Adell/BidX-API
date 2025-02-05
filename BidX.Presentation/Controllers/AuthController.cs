@@ -88,6 +88,27 @@ public class AuthController : ControllerBase
             return Ok(result.Response);
     }
 
+
+    /// <response code="200">If the request is sent from a browser client the refreshToken will be set as an http-only cookie and won't be returned in the response body.</response>
+    [HttpPost("google-login")]
+    [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> LoginWithGoogle(LoginWithGoogleRequest request)
+    {
+        var result = await authService.LoginWithGoogle(request);
+
+        if (!result.Succeeded)
+            return Unauthorized(result.Error);
+
+        if (IsBrowserClient())
+        {
+            SetRefreshTokenCookie(result.Response!.RefreshToken);
+            return Ok(new { result.Response!.User, result.Response.AccessToken }); // RefreshToken won't returned in the payload
+        }
+        else
+            return Ok(result.Response);
+    }
+
     /// <summary>Browser Clients don't have to send the request body, the server will extract the refresh token from the cookies instead.</summary>
     /// <response code="200">If the request is sent from a browser client the refreshToken will be set as an http-only cookie and won't be returned in the response body.</response>
     [HttpPost("refresh")]

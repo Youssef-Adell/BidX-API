@@ -8,6 +8,7 @@ using BidX.BusinessLogic.Interfaces;
 using BidX.BusinessLogic.Mappings;
 using BidX.DataAccess;
 using BidX.DataAccess.Entites;
+using Google.Apis.Auth;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Configuration;
@@ -30,7 +31,7 @@ public class AuthService : IAuthService
         this.configuration = configuration;
     }
 
-    public async Task<Result> Register(RegisterRequest request, string userRole)
+    public async Task<Result> Register(RegisterRequest request, string userRole = "User")
     {
         var user = request.ToUserEntity();
 
@@ -42,7 +43,11 @@ public class AuthService : IAuthService
         }
 
         var addingRolesResult = await userManager.AddToRoleAsync(user, userRole);
-
+        if (!addingRolesResult.Succeeded)
+        {
+            await userManager.DeleteAsync(user);
+            throw new Exception($"Faild to add roles while registering the user whose email is: {request.Email}."); // will be catched and logged by the global error handler middleware
+        }
         return Result.Success();
     }
 
@@ -121,7 +126,7 @@ public class AuthService : IAuthService
 
         await appDbContext.SaveChangesAsync();
 
-        return Result<LoginResponse>.Success(await CreateLoginResponseAsync(user));
+        return Result<LoginResponse>.Success(await CreateLoginResponse(user));
     }
 
     public async Task<Result<LoginResponse>> Refresh(string? refreshToken)
@@ -130,7 +135,47 @@ public class AuthService : IAuthService
         if (user is null)
             return Result<LoginResponse>.Failure(ErrorCode.AUTH_INVALID_REFRESH_TOKEN, ["Invalid refresh token."]);
 
-        return Result<LoginResponse>.Success(await CreateLoginResponseAsync(user));
+        return Result<LoginResponse>.Success(await CreateLoginResponse(user));
+    }
+
+    public async Task<Result<LoginResponse>> LoginWithGoogle(LoginWithGoogleRequest request)
+    {
+        GoogleJsonWebSignature.Payload idTokenPayload;
+
+        // Vlidate the Id Token
+        try
+        {
+            var settings = new GoogleJsonWebSignature.ValidationSettings
+            {
+                Audience = [Environment.GetEnvironmentVariable("GOOGLE_CLIENT_ID")!]
+            };
+
+            idTokenPayload = await GoogleJsonWebSignature.ValidateAsync(request.IdToken, settings);
+        }
+        catch (InvalidJwtException ex)
+        {
+            return Result<LoginResponse>.Failure(ErrorCode.AUTH_EXTERNAL_LOGIN_FAILED, [ex.Message]);
+        }
+
+        // Attempt to get the user by email.
+        var user = await userManager.FindByEmailAsync(idTokenPayload.Email);
+
+        // Register the user if he is not exist.
+        if (user is null)
+        {
+            user = await CreateUserWithGoogleCredentials(idTokenPayload);
+            if (user is null)
+                return Result<LoginResponse>.Failure(ErrorCode.AUTH_EXTERNAL_LOGIN_FAILED, ["Faild to signup with google."]);
+        }
+        // Otherwise assign a refresh token for him
+        else
+        {
+            user.RefreshToken = CreateRefreshToken();
+            await appDbContext.SaveChangesAsync();
+        }
+
+        // Create and return the login response.
+        return Result<LoginResponse>.Success(await CreateLoginResponse(user));
     }
 
     public async Task SendPasswordResetEmail(string email, string urlOfPasswordResetPage)
@@ -202,7 +247,34 @@ public class AuthService : IAuthService
     }
 
 
-    private async Task<LoginResponse> CreateLoginResponseAsync(User user)
+    private async Task<User?> CreateUserWithGoogleCredentials(GoogleJsonWebSignature.Payload payload)
+    {
+        var user = new User
+        {
+            FirstName = payload.GivenName,
+            LastName = payload.FamilyName,
+            ProfilePictureUrl = payload.Picture,
+            UserName = payload.Email,
+            Email = payload.Email,
+            EmailConfirmed = true,
+            RefreshToken = CreateRefreshToken(),
+        };
+
+        var result = await userManager.CreateAsync(user);
+        if (!result.Succeeded)
+            return null;
+
+        var roleResult = await userManager.AddToRoleAsync(user, "User");
+        if (!roleResult.Succeeded)
+        {
+            await userManager.DeleteAsync(user);
+            return null;
+        }
+
+        return user;
+    }
+
+    private async Task<LoginResponse> CreateLoginResponse(User user)
     {
         var roles = await userManager.GetRolesAsync(user);
         var accessToken = CreateAccessToken(user, roles);
