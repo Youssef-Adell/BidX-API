@@ -21,7 +21,7 @@ public class BrevoEmailService : IEmailService
     {
         await SendTemplatedEmail(
             userEmail,
-            "ConfirmationEmailTemplateId",
+            configuration[$"BrevoEmailApi:ConfirmationEmailTemplateId"]!,
             new { ConfirmationLink = confirmationLink });
     }
 
@@ -29,16 +29,19 @@ public class BrevoEmailService : IEmailService
     {
         await SendTemplatedEmail(
             userEmail,
-            "PasswordResetEmailTemplateId",
+            configuration[$"BrevoEmailApi:PasswordResetEmailTemplateId"]!,
             new { PasswordResetPageLink = passwordResetPageLink });
     }
 
 
-    private async Task SendTemplatedEmail(string userEmail, string configKey, object parameters)
+    private async Task SendTemplatedEmail(string userEmail, string emailTemplateId, object parameters)
     {
+        var templateId = long.Parse(emailTemplateId);
+
         var to = new List<SendSmtpEmailTo> { new(userEmail) };
-        var emailTemplateId = long.Parse(configuration[$"BrevoEmailApi:{configKey}"]!);
-        var sendSmtpEmail = new SendSmtpEmail(templateId: emailTemplateId, to: to, _params: parameters);
+
+        var sendSmtpEmail = new SendSmtpEmail(templateId: templateId, to: to, _params: parameters);
+
         await apiInstance.SendTransacEmailAsync(sendSmtpEmail);
     }
 

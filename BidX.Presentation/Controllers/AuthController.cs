@@ -37,34 +37,39 @@ public class AuthController : ControllerBase
     }
 
     /*
-    when the user hit this endpoint there is message contains a link to the "confirm-email" endpoint with (userId, token) in the query parameters will be sent to his email
-    and when the user hit this link a get request will be sent to the "confirm-email" endpoint which will take the token in the query param to validate it and return an html page to indicate if the email confirmed or not
+    when the user hit this endpoint there is message contains a link to the "confirm-email" page with (userId, token) in the query parameters will be sent to his email
+    and when the user hit this link the page will open and a post request will be sent to the "confirm-email" endpoint with the token readed from the page query param
     */
     [HttpPost("resend-confirmation-email")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> SendConfirmationEmail(SendConfirmationEmailRequest request)
     {
-        var urlOfConfirmationEndpoint = linkGenerator.GetUriByAction(HttpContext, nameof(ConfirmEmail));
-
-        await authService.SendConfirmationEmail(request.Email, urlOfConfirmationEndpoint!);
+        await authService.SendConfirmationEmail(request.Email);
 
         return NoContent();
     }
 
-    [HttpGet("confirm-email")]
-    [ApiExplorerSettings(IgnoreApi = true)]
-    public async Task<ContentResult> ConfirmEmail(string userId, string token)
+
+    /// <response code="200">The refreshToken will be set as an http-only cookie and won't be returned in the response body.</response>
+    [HttpPost("confirm-email")]
+    [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ConfirmEmail(ConfirmEmailRequest request)
     {
-        var isConfirmed = await authService.ConfirmEmail(userId, token);
+        var result = await authService.ConfirmEmail(request);
 
-        string html;
+        if (!result.Succeeded)
+        {
+            if (result.Error!.ErrorCode == ErrorCode.RESOURCE_NOT_FOUND)
+                return NotFound(result.Error);
+            else if (result.Error!.ErrorCode == ErrorCode.AUTH_EMAIL_CONFIRMATION_FAILD)
+                return Unauthorized(result.Error);
+        }
 
-        if (isConfirmed)
-            html = await System.IO.File.ReadAllTextAsync(@"./wwwroot/Pages/confirmation-succeeded.html");
-        else
-            html = await System.IO.File.ReadAllTextAsync(@"./wwwroot/pages/confirmation-faild.html");
+        SetRefreshTokenCookie(result.Response!.RefreshToken);
 
-        return Content(html, "text/html");
+        return Ok(new { result.Response.User, result.Response.AccessToken });
     }
 
 
