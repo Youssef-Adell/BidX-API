@@ -147,7 +147,8 @@ public class ChatsService : IChatsService
             .GroupBy(m => m.ChatId)
             .CountAsync();
 
-        await realTimeService.NotifyUserWithUnreadChatsCount(userId, unreadChatsCount);
+        if (unreadChatsCount > 0)
+            await realTimeService.NotifyUserWithUnreadChatsCount(userId, unreadChatsCount);
     }
 
     public async Task NotifyParticipantsWithUserStatus(int userId, bool isOnline)

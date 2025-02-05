@@ -60,7 +60,8 @@ public class NotificationsService : INotificationsService
         var unreadNotificationsCount = await appDbContext.NotificationRecipients
             .CountAsync(nr => nr.RecipientId == userId && !nr.IsRead);
 
-        await realTimeService.NotifyUserWithUnreadNotificationsCount(userId, unreadNotificationsCount);
+        if (unreadNotificationsCount > 0)
+            await realTimeService.NotifyUserWithUnreadNotificationsCount(userId, unreadNotificationsCount);
     }
 
     public async Task SendPlacedBidNotifications(int auctionId, string auctionTitle, decimal bidAmount, int bidderId, int auctioneerId, int? previousHighestBidderId)
