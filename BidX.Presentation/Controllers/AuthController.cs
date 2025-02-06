@@ -37,34 +37,39 @@ public class AuthController : ControllerBase
     }
 
     /*
-    when the user hit this endpoint there is message contains a link to the "confirm-email" endpoint with (userId, token) in the query parameters will be sent to his email
-    and when the user hit this link a get request will be sent to the "confirm-email" endpoint which will take the token in the query param to validate it and return an html page to indicate if the email confirmed or not
+    when the user hit this endpoint there is message contains a link to the "confirm-email" page with (userId, token) in the query parameters will be sent to his email
+    and when the user hit this link the page will open and a post request will be sent to the "confirm-email" endpoint with the token readed from the page query param
     */
     [HttpPost("resend-confirmation-email")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> SendConfirmationEmail(SendConfirmationEmailRequest request)
     {
-        var urlOfConfirmationEndpoint = linkGenerator.GetUriByAction(HttpContext, nameof(ConfirmEmail));
-
-        await authService.SendConfirmationEmail(request.Email, urlOfConfirmationEndpoint!);
+        await authService.SendConfirmationEmail(request.Email);
 
         return NoContent();
     }
 
-    [HttpGet("confirm-email")]
-    [ApiExplorerSettings(IgnoreApi = true)]
-    public async Task<ContentResult> ConfirmEmail(string userId, string token)
+
+    /// <response code="200">The refreshToken will be set as an http-only cookie and won't be returned in the response body.</response>
+    [HttpPost("confirm-email")]
+    [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ConfirmEmail(ConfirmEmailRequest request)
     {
-        var isConfirmed = await authService.ConfirmEmail(userId, token);
+        var result = await authService.ConfirmEmail(request);
 
-        string html;
+        if (!result.Succeeded)
+        {
+            if (result.Error!.ErrorCode == ErrorCode.RESOURCE_NOT_FOUND)
+                return NotFound(result.Error);
+            else if (result.Error!.ErrorCode == ErrorCode.AUTH_EMAIL_CONFIRMATION_FAILD)
+                return Unauthorized(result.Error);
+        }
 
-        if (isConfirmed)
-            html = await System.IO.File.ReadAllTextAsync(@"./wwwroot/Pages/confirmation-succeeded.html");
-        else
-            html = await System.IO.File.ReadAllTextAsync(@"./wwwroot/pages/confirmation-faild.html");
+        SetRefreshTokenCookie(result.Response!.RefreshToken);
 
-        return Content(html, "text/html");
+        return Ok(new { result.Response.User, result.Response.AccessToken });
     }
 
 
@@ -109,6 +114,7 @@ public class AuthController : ControllerBase
             return Ok(result.Response);
     }
 
+
     /// <summary>Browser Clients don't have to send the request body, the server will extract the refresh token from the cookies instead.</summary>
     /// <response code="200">If the request is sent from a browser client the refreshToken will be set as an http-only cookie and won't be returned in the response body.</response>
     [HttpPost("refresh")]
@@ -132,32 +138,22 @@ public class AuthController : ControllerBase
     }
 
     /*
-    when the user enter his email and hit the "forget-password" endpoint there is message contains a link to the "reset-password-page" endpoint with (accountId, token) in the query parameters will be sent to it
-    the link will return an html page that has a form to set a new password and as i said there is accountId and resetCode included in the query parameter by the previous endpoint
-    when the user press the submit button to submit the new password there is a post request contains (accountId, token, newPassword) will be sent to "reset-password" endpoint
+    when the user enter his email and hit the "forget-password" endpoint there is message contains a link to the "reset-password" page with (userId, token) in the query parameters
+    and when the user press the submit button to submit the new password there is a post request contains (userId, token, newPassword) will be sent to "reset-password" endpoint
     */
     [HttpPost("forgot-password")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> ForgotPassword(ForgotPasswordRequest request)
     {
-        await authService.SendPasswordResetEmail(request.Email, linkGenerator.GetUriByAction(HttpContext, nameof(GetPasswordResetPage))!);
+        await authService.SendPasswordResetEmail(request.Email);
 
         return NoContent();
     }
 
-    [HttpGet("password-reset-page")]
-    [ApiExplorerSettings(IgnoreApi = true)]
-    public async Task<ContentResult> GetPasswordResetPage(string userId, string token)
-    {
-        var html = await System.IO.File.ReadAllTextAsync(@"./wwwroot/Pages/reset-password.html");
-
-        html = html.Replace("{{resetPasswordEndpointUrl}}", linkGenerator.GetUriByAction(HttpContext, nameof(ResetPassword)));
-
-        return Content(html, "text/html");
-    }
 
     [HttpPost("reset-password")]
-    [ApiExplorerSettings(IgnoreApi = true)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status422UnprocessableEntity)]
     public async Task<IActionResult> ResetPassword(ResetPasswordRequest request)
     {
         var result = await authService.ResetPassword(request);
@@ -167,6 +163,7 @@ public class AuthController : ControllerBase
 
         return NoContent();
     }
+
 
     [HttpPost("change-password")]
     [Authorize]
@@ -184,6 +181,7 @@ public class AuthController : ControllerBase
 
         return NoContent();
     }
+
 
     [HttpPost("Logout")]
     [Authorize]

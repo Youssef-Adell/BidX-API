@@ -11,6 +11,7 @@ using BidX.DataAccess.Entites;
 using Google.Apis.Auth;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 
@@ -51,39 +52,47 @@ public class AuthService : IAuthService
         return Result.Success();
     }
 
-    public async Task SendConfirmationEmail(string email, string urlOfConfirmationEndpoint)
+    public async Task SendConfirmationEmail(string email)
     {
         var user = await userManager.FindByEmailAsync(email);
 
         if (user != null && !user.EmailConfirmed)
         {
+            var emailConfirmationPageUrl = configuration["AuthPages:EmailConfirmationPageUrl"];
+
             var token = await userManager.GenerateEmailConfirmationTokenAsync(user);
             token = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
 
-            var confirmationLink = $"{urlOfConfirmationEndpoint}?userId={user.Id}&token={token}";
+            var confirmationLink = $"{emailConfirmationPageUrl}?userId={user.Id}&token={token}";
 
             await emailService.SendConfirmationEmail(email, confirmationLink);
         }
     }
 
-    public async Task<bool> ConfirmEmail(string userId, string token)
+    public async Task<Result<LoginResponse>> ConfirmEmail(ConfirmEmailRequest request)
     {
-        var user = await userManager.FindByIdAsync(userId);
+        var user = await userManager.FindByIdAsync($"{request.UserId}");
 
         if (user == null)
-            return false;
+            return Result<LoginResponse>.Failure(ErrorCode.RESOURCE_NOT_FOUND, ["User not found."]);
 
         if (!user.EmailConfirmed)
         {
-            token = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(token));
+            user.RefreshToken = CreateRefreshToken(); // Assign a refresh token to the user to be saved while confirming the email
+
+            var token = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(request.Token));
 
             var result = await userManager.ConfirmEmailAsync(user, token);
-
             if (!result.Succeeded)
-                return false;
+            {
+                var errorMessages = result.Errors.Select(error => error.Description);
+                return Result<LoginResponse>.Failure(ErrorCode.AUTH_EMAIL_CONFIRMATION_FAILD, errorMessages);
+            }
+
+            return Result<LoginResponse>.Success(await CreateLoginResponse(user));
         }
 
-        return true;
+        return Result<LoginResponse>.Failure(ErrorCode.AUTH_EMAIL_CONFIRMATION_FAILD, ["Email is Already Confirmed."]);
     }
 
     public async Task<Result<LoginResponse>> Login(LoginRequest request)
@@ -167,29 +176,33 @@ public class AuthService : IAuthService
             if (user is null)
                 return Result<LoginResponse>.Failure(ErrorCode.AUTH_EXTERNAL_LOGIN_FAILED, ["Faild to signup with google."]);
         }
-        // Otherwise assign a refresh token for him
+        // Otherwise assign a refresh token for him before return the LoginResponse
         else
         {
             user.RefreshToken = CreateRefreshToken();
-            await appDbContext.SaveChangesAsync();
+            await appDbContext.Users
+                .Where(u => u.Id == user.Id)
+                .ExecuteUpdateAsync(setters => setters.SetProperty(u => u.RefreshToken, user.RefreshToken));
         }
 
         // Create and return the login response.
         return Result<LoginResponse>.Success(await CreateLoginResponse(user));
     }
 
-    public async Task SendPasswordResetEmail(string email, string urlOfPasswordResetPage)
+    public async Task SendPasswordResetEmail(string email)
     {
         var user = await userManager.FindByEmailAsync(email);
 
         if (user != null && user.EmailConfirmed)
         {
+            var resetPasswordPageUrl = configuration["AuthPages:ResetPasswordPageUrl"];
+
             var token = await userManager.GeneratePasswordResetTokenAsync(user);
             token = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
 
-            var urlOfPasswordResetPageForCurrentUser = $"{urlOfPasswordResetPage}?userId={user.Id}&token={token}";
+            var urlOfResetPasswordPageForCurrentUser = $"{resetPasswordPageUrl}?userId={user.Id}&token={token}";
 
-            await emailService.SendPasswordResetEmail(email, urlOfPasswordResetPageForCurrentUser);
+            await emailService.SendPasswordResetEmail(email, urlOfResetPasswordPageForCurrentUser);
         }
     }
 
@@ -302,7 +315,7 @@ public class AuthService : IAuthService
         var jwtToken = new JwtSecurityToken(
             claims: GetClaims(user, roles),
             signingCredentials: GetSigningCredentials(),
-            expires: DateTime.UtcNow.AddMinutes(Convert.ToDouble(configuration["JwtSettings:AccessTokenExpirationTimeInMinutes"])) //there is no diffrerence between using DateTime.UtcNow and DateTime.Now because it is converted to epoch timestamp format anyway
+            expires: DateTime.UtcNow.AddMinutes(Convert.ToDouble(configuration["Jwt:AccessTokenExpirationTimeInMinutes"])) //there is no diffrerence between using DateTime.UtcNow and DateTime.Now because it is converted to epoch timestamp format anyway
         );
 
         var token = new JwtSecurityTokenHandler().WriteToken(jwtToken);
