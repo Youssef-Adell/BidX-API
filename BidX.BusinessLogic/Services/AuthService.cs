@@ -189,18 +189,20 @@ public class AuthService : IAuthService
         return Result<LoginResponse>.Success(await CreateLoginResponse(user));
     }
 
-    public async Task SendPasswordResetEmail(string email, string urlOfPasswordResetPage)
+    public async Task SendPasswordResetEmail(string email)
     {
         var user = await userManager.FindByEmailAsync(email);
 
         if (user != null && user.EmailConfirmed)
         {
+            var resetPasswordPageUrl = configuration["AuthPages:ResetPasswordPageUrl"];
+
             var token = await userManager.GeneratePasswordResetTokenAsync(user);
             token = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
 
-            var urlOfPasswordResetPageForCurrentUser = $"{urlOfPasswordResetPage}?userId={user.Id}&token={token}";
+            var urlOfResetPasswordPageForCurrentUser = $"{resetPasswordPageUrl}?userId={user.Id}&token={token}";
 
-            await emailService.SendPasswordResetEmail(email, urlOfPasswordResetPageForCurrentUser);
+            await emailService.SendPasswordResetEmail(email, urlOfResetPasswordPageForCurrentUser);
         }
     }
 

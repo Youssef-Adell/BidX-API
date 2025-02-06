@@ -11,7 +11,7 @@ public interface IAuthService
     Task<Result<LoginResponse>> Login(LoginRequest request);
     Task<Result<LoginResponse>> LoginWithGoogle(LoginWithGoogleRequest request);
     Task<Result<LoginResponse>> Refresh(string? refreshToken);
-    Task SendPasswordResetEmail(string email, string urlOfPasswordResetPage);
+    Task SendPasswordResetEmail(string email);
     Task<Result> ResetPassword(ResetPasswordRequest request);
     Task<Result> ChangePassword(int userId, ChangePasswordRequest request);
     /// <summary>

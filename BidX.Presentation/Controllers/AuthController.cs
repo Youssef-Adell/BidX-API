@@ -114,6 +114,7 @@ public class AuthController : ControllerBase
             return Ok(result.Response);
     }
 
+
     /// <summary>Browser Clients don't have to send the request body, the server will extract the refresh token from the cookies instead.</summary>
     /// <response code="200">If the request is sent from a browser client the refreshToken will be set as an http-only cookie and won't be returned in the response body.</response>
     [HttpPost("refresh")]
@@ -137,32 +138,22 @@ public class AuthController : ControllerBase
     }
 
     /*
-    when the user enter his email and hit the "forget-password" endpoint there is message contains a link to the "reset-password-page" endpoint with (accountId, token) in the query parameters will be sent to it
-    the link will return an html page that has a form to set a new password and as i said there is accountId and resetCode included in the query parameter by the previous endpoint
-    when the user press the submit button to submit the new password there is a post request contains (accountId, token, newPassword) will be sent to "reset-password" endpoint
+    when the user enter his email and hit the "forget-password" endpoint there is message contains a link to the "reset-password" page with (userId, token) in the query parameters
+    and when the user press the submit button to submit the new password there is a post request contains (userId, token, newPassword) will be sent to "reset-password" endpoint
     */
     [HttpPost("forgot-password")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> ForgotPassword(ForgotPasswordRequest request)
     {
-        await authService.SendPasswordResetEmail(request.Email, linkGenerator.GetUriByAction(HttpContext, nameof(GetPasswordResetPage))!);
+        await authService.SendPasswordResetEmail(request.Email);
 
         return NoContent();
     }
 
-    [HttpGet("password-reset-page")]
-    [ApiExplorerSettings(IgnoreApi = true)]
-    public async Task<ContentResult> GetPasswordResetPage(string userId, string token)
-    {
-        var html = await System.IO.File.ReadAllTextAsync(@"./wwwroot/Pages/reset-password.html");
-
-        html = html.Replace("{{resetPasswordEndpointUrl}}", linkGenerator.GetUriByAction(HttpContext, nameof(ResetPassword)));
-
-        return Content(html, "text/html");
-    }
 
     [HttpPost("reset-password")]
-    [ApiExplorerSettings(IgnoreApi = true)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status422UnprocessableEntity)]
     public async Task<IActionResult> ResetPassword(ResetPasswordRequest request)
     {
         var result = await authService.ResetPassword(request);
@@ -172,6 +163,7 @@ public class AuthController : ControllerBase
 
         return NoContent();
     }
+
 
     [HttpPost("change-password")]
     [Authorize]
@@ -189,6 +181,7 @@ public class AuthController : ControllerBase
 
         return NoContent();
     }
+
 
     [HttpPost("Logout")]
     [Authorize]
