@@ -27,5 +27,5 @@ public partial interface IHubClient
     /// <summary>
     /// Triggerd for any client currently in a chat room with this user 
     /// </summary>
-    Task UserStatusChanged(UserStatusResponse userStatus);
+    Task UserStatusChanged(UserStatusResponse response);
 }

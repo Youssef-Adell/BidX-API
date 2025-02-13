@@ -16,6 +16,69 @@ public class SignalrRealTimeService : IRealTimeService
         this.hubContext = hubContext;
     }
 
+
+    #region Bidding
+    public async Task SendPlacedBidToAuctionRoom(int auctionId, BidResponse bid)
+    {
+        var groupName = $"AUCTION#{auctionId}";
+        await hubContext.Clients
+            .Group(groupName)
+            .BidPlaced(bid);
+    }
+
+    public async Task SendAcceptedBidToAuctionRoom(int auctionId, BidResponse bid)
+    {
+        var groupName = $"AUCTION#{auctionId}";
+        await hubContext.Clients
+            .Group(groupName)
+            .BidAccepted(bid);
+    }
+    #endregion
+
+
+    #region Feed
+    public async Task SendAuctionToFeed(AuctionResponse auction)
+    {
+        var groupName = "FEED";
+        await hubContext.Clients
+            .Group(groupName)
+            .AuctionCreated(auction);
+    }
+
+    public async Task DeleteAuctionFromFeed(int auctionId)
+    {
+        var groupName = "FEED";
+        await hubContext.Clients
+            .Group(groupName)
+            .AuctionDeleted(new() { AuctionId = auctionId });
+    }
+
+    public async Task UpdateAuctionPriceInFeed(int auctionId, decimal newPrice)
+    {
+        var groupName = "FEED";
+        await hubContext.Clients
+            .Group(groupName)
+            .AuctionPriceUpdated(new()
+            {
+                AuctionId = auctionId,
+                NewPrice = newPrice
+            });
+    }
+
+    public async Task MarkAuctionAsEndedInFeed(int auctionId, decimal finalPrice)
+    {
+        var groupName = "FEED";
+        await hubContext.Clients
+            .Group(groupName)
+            .AuctionEnded(new()
+            {
+                AuctionId = auctionId,
+                FinalPrice = finalPrice
+            });
+    }
+    #endregion
+
+
     #region Chat
     public async Task SendMessageToChat(int chatId, MessageResponse message)
     {
@@ -66,65 +129,6 @@ public class SignalrRealTimeService : IRealTimeService
     {
         await hubContext.Clients.User($"{userId}")
             .UnreadNotificationsCountUpdated(new() { UnreadNotificationsCount = unreadNotificationsCount });
-    }
-    #endregion
-
-
-    #region Auction
-    public async Task SendPlacedBidToAuctionRoom(int auctionId, BidResponse bid)
-    {
-        var groupName = $"AUCTION#{auctionId}";
-        await hubContext.Clients
-            .Group(groupName)
-            .BidPlaced(bid);
-    }
-
-    public async Task SendAcceptedBidToAuctionRoom(int auctionId, BidResponse bid)
-    {
-        var groupName = $"AUCTION#{auctionId}";
-        await hubContext.Clients
-            .Group(groupName)
-            .BidAccepted(bid);
-    }
-
-    public async Task SendAuctionToFeed(AuctionResponse auction)
-    {
-        var groupName = "FEED";
-        await hubContext.Clients
-            .Group(groupName)
-            .AuctionCreated(auction);
-    }
-
-    public async Task DeleteAuctionFromFeed(int auctionId)
-    {
-        var groupName = "FEED";
-        await hubContext.Clients
-            .Group(groupName)
-            .AuctionDeleted(new() { AuctionId = auctionId });
-    }
-
-    public async Task UpdateAuctionPriceInFeed(int auctionId, decimal newPrice)
-    {
-        var groupName = "FEED";
-        await hubContext.Clients
-            .Group(groupName)
-            .AuctionPriceUpdated(new()
-            {
-                AuctionId = auctionId,
-                NewPrice = newPrice
-            });
-    }
-
-    public async Task MarkAuctionAsEndedInFeed(int auctionId, decimal finalPrice)
-    {
-        var groupName = "FEED";
-        await hubContext.Clients
-            .Group(groupName)
-            .AuctionEnded(new()
-            {
-                AuctionId = auctionId,
-                FinalPrice = finalPrice
-            });
     }
     #endregion
 
