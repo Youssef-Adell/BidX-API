@@ -49,6 +49,9 @@ public class AuthService : IAuthService
             await userManager.DeleteAsync(user);
             throw new Exception($"Faild to add roles while registering the user whose email is: {request.Email}."); // will be catched and logged by the global error handler middleware
         }
+
+        await SendConfirmationEmail(user.Email!);
+
         return Result.Success();
     }
 
