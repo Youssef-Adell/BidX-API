@@ -25,7 +25,7 @@ public class ChatsController : ControllerBase
 
 
     /// <summary>
-    /// Gets the chats of the current user.
+    /// Gets the chats of the current user
     /// </summary>
     [HttpGet]
     [ProducesResponseType(typeof(Page<ChatDetailsResponse>), StatusCodes.Status200OK)]
@@ -40,7 +40,7 @@ public class ChatsController : ControllerBase
 
 
     /// <summary>
-    /// Creates a chat or retrieves it if exists.
+    /// Creates a chat or retrieves it if exists
     /// </summary>
     [HttpPost]
     [ProducesResponseType(typeof(ChatSummeryResponse), StatusCodes.Status201Created)]
@@ -54,7 +54,7 @@ public class ChatsController : ControllerBase
         if (!result.Succeeded)
             return NotFound(result.Error);
 
-        return CreatedAtAction(nameof(GetChat), new {chatId = result.Response!.Id}, result.Response);
+        return CreatedAtAction(nameof(GetChat), new { chatId = result.Response!.Id }, result.Response);
     }
 
 
@@ -74,6 +74,9 @@ public class ChatsController : ControllerBase
     }
 
 
+    /// <summary>
+    /// The messages will be marked as read once this endpoint is called
+    /// </summary>
     [HttpGet("{chatId}/messages")]
     [ProducesResponseType(typeof(Page<MessageResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]

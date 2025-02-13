@@ -26,7 +26,7 @@ public class NotificationsController : ControllerBase
 
 
     /// <summary>
-    /// Gets the chats of the current user.
+    /// Gets the notifications of the current user
     /// </summary>
     [HttpGet]
     [ProducesResponseType(typeof(Page<NotificationResponse>), StatusCodes.Status200OK)]

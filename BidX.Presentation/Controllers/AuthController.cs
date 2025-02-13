@@ -33,7 +33,7 @@ public class AuthController : ControllerBase
         if (!result.Succeeded)
             return UnprocessableEntity(result.Error);
 
-        return await SendConfirmationEmail(new() { Email = request.Email });
+        return NoContent();
     }
 
     /*
@@ -115,7 +115,9 @@ public class AuthController : ControllerBase
     }
 
 
-    /// <summary>Browser Clients don't have to send the request body, the server will extract the refresh token from the cookies instead.</summary>
+    /// <summary>
+    /// Browser Clients don't have to send the request body, the server will extract the refresh token from the cookies instead
+    /// </summary>
     /// <response code="200">If the request is sent from a browser client the refreshToken will be set as an http-only cookie and won't be returned in the response body.</response>
     [HttpPost("refresh")]
     [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
