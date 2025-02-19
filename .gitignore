@@ -6,3 +6,4 @@ vs-code/
 vscode/
 Logs/
 TestController.cs
+*.env*
