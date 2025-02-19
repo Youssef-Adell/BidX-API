@@ -1,0 +1,10 @@
+# Ignore build artifacts
+bin/
+obj/
+
+# Ignore Visual Studio files
+.vscode/
+vs-code/
+.vs/
+
+*.env*

@@ -1,0 +1,29 @@
+services:
+  webapi:
+    build: 
+      context: . # To allow the Dockerfile to access all solution files (When we use COPY commands in the Dockerfile, paths are relative to this context)
+      dockerfile: src/BidX.Presentation/Dockerfile
+    image: bidx/webapi:latest
+    container_name: webapi
+    env_file: webapi.env
+    ports:
+      - 5000:8080
+    depends_on:
+      - sqlserver
+    volumes:
+      - webapi-logs:/app/Logs
+      - dataprotection-keys:/root/.aspnet/DataProtection-Keys
+    
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: sqlserver
+    env_file: sqlserver.env
+    ports:
+      - 1433:1433
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+
+volumes:
+  webapi-logs:
+  sqlserver-data:
+  dataprotection-keys: # For DataProtection keys otherwise I will got a warning that the keys will be unavailable when the container is destroyed see:https://andrewlock.net/an-introduction-to-the-data-protection-system-in-asp-net-core
