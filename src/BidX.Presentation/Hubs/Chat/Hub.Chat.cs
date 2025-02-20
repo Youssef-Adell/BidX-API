@@ -21,6 +21,14 @@ public partial class Hub
         await chatsService.MarkMessageAsRead(userId, request);
     }
 
+    [Authorize]
+    public async Task MarkAllMessagesAsRead(MarkAllMessagesAsReadRequest request)
+    {
+        var userId = int.Parse(Context.UserIdentifier!);
+
+        await chatsService.MarkAllMessagesAsRead(userId, request);
+    }
+
     /// <summary>
     /// The client must call this method when the chat page loaded to be able to receive messages updates in realtime
     /// </summary>

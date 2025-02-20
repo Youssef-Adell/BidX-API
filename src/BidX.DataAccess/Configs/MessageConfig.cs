@@ -27,6 +27,8 @@ public class MessageConfig : IEntityTypeConfiguration<Message>
 
         // Needed in GetUserChats for:
         //  - Counting unread received messages by filtering with (ChatId + RecipientId + IsRead)
+        // Needed in MarkAllMessagesAsRead for:
+        //  - Filtering by (ChatId + RecipientId + IsRead)
         builder.HasIndex(m => new { m.ChatId, m.RecipientId, m.IsRead });
 
     }

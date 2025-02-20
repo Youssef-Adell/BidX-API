@@ -89,8 +89,6 @@ public class ChatsService : IChatsService
             .AsNoTracking()
             .ToListAsync();
 
-        await MarkReceivedMessagesAsRead(callerId, chatId);
-
         var page = new Page<MessageResponse>(chatMessages, queryParams.Page, queryParams.PageSize, totalCount);
         return Result<Page<MessageResponse>>.Success(page);
     }
@@ -120,6 +118,7 @@ public class ChatsService : IChatsService
             NotifyUserWithUnreadChatsCount(response.RecipientId)
         );
     }
+
     public async Task MarkMessageAsRead(int readerId, MarkMessageAsReadRequest request)
     {
         var message = await appDbContext.Messages
@@ -138,6 +137,15 @@ public class ChatsService : IChatsService
             .ExecuteUpdateAsync(setters => setters.SetProperty(m => m.IsRead, true));
 
         await realTimeService.MarkMessageAsRead(message.ChatId, message.Id);
+    }
+
+    public async Task MarkAllMessagesAsRead(int readerId, MarkAllMessagesAsReadRequest request)
+    {
+        await appDbContext.Messages
+            .Where(m => m.ChatId == request.ChatId && m.RecipientId == readerId && !m.IsRead)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(m => m.IsRead, true));
+
+        await realTimeService.MarkAllMessagesAsRead(request.ChatId, readerId);
     }
 
     public async Task NotifyUserWithUnreadChatsCount(int userId)
@@ -167,15 +175,6 @@ public class ChatsService : IChatsService
         await realTimeService.NotifyParticipantsWithUserStatus(chatIdsToNotify, userId, isOnline);
     }
 
-
-    private async Task MarkReceivedMessagesAsRead(int readerId, int chatId)
-    {
-        await appDbContext.Messages
-            .Where(m => m.ChatId == chatId && m.RecipientId == readerId)
-            .ExecuteUpdateAsync(setters => setters.SetProperty(m => m.IsRead, true));
-
-        await realTimeService.MarkAllMessagesAsRead(chatId, readerId);
-    }
 
     private async Task<ChatSummeryResponse?> GetChatIfExist(int participant1Id, int participant2Id)
     {

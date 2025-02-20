@@ -74,9 +74,6 @@ public class ChatsController : ControllerBase
     }
 
 
-    /// <summary>
-    /// The messages will be marked as read once this endpoint is called
-    /// </summary>
     [HttpGet("{chatId}/messages")]
     [ProducesResponseType(typeof(Page<MessageResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
