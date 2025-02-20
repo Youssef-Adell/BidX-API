@@ -12,6 +12,7 @@ public interface IChatsService
     Task<Result<Page<MessageResponse>>> GetChatMessages(int callerId, int chatId, MessagesQueryParams queryParams);
     Task SendMessage(int senderId, SendMessageRequest request);
     Task MarkMessageAsRead(int readerId, MarkMessageAsReadRequest request);
+    Task MarkAllMessagesAsRead(int readerId, MarkAllMessagesAsReadRequest request);
     Task NotifyUserWithUnreadChatsCount(int userId);
     Task NotifyParticipantsWithUserStatus(int userId, bool isOnline);
 }
