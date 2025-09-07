@@ -193,7 +193,7 @@ public class AuthController : ControllerBase
     {
         var userId = User.GetUserId();
 
-        await authService.RevokeRefreshToken(userId);
+        await authService.Logout(userId);
 
         if (IsBrowserClient())
             DeleteRefreshTokenCookie();
