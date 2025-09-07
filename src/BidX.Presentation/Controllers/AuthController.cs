@@ -95,12 +95,12 @@ public class AuthController : ControllerBase
 
 
     /// <response code="200">If the request is sent from a browser client the refreshToken will be set as an http-only cookie and won't be returned in the response body.</response>
-    [HttpPost("google-login")]
+    [HttpPost("external-login")]
     [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> LoginWithGoogle(LoginWithGoogleRequest request)
+    public async Task<IActionResult> LoginWithExternalProvider(LoginWithExternalProviderRequest request)
     {
-        var result = await authService.LoginWithGoogle(request);
+        var result = await authService.LoginWithExternalProvider(request);
 
         if (!result.Succeeded)
             return Unauthorized(result.Error);

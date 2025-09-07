@@ -9,7 +9,7 @@ public interface IAuthService
     Task SendConfirmationEmail(string email);
     Task<Result<LoginResponse>> ConfirmEmail(ConfirmEmailRequest request);
     Task<Result<LoginResponse>> Login(LoginRequest request);
-    Task<Result<LoginResponse>> LoginWithGoogle(LoginWithGoogleRequest request);
+    Task<Result<LoginResponse>> LoginWithExternalProvider(LoginWithExternalProviderRequest request);
     Task<Result<LoginResponse>> Refresh(string? refreshToken);
     Task SendPasswordResetEmail(string email);
     Task<Result> ResetPassword(ResetPasswordRequest request);

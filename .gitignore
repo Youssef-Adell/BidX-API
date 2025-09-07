@@ -8,3 +8,4 @@ Logs/
 TestController.cs
 *.env
 !*.env.example
+.vs/

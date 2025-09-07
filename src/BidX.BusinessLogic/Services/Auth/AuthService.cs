@@ -4,7 +4,6 @@ using BidX.BusinessLogic.DTOs.CommonDTOs;
 using BidX.BusinessLogic.Interfaces;
 using BidX.BusinessLogic.Mappings;
 using BidX.DataAccess.Entites;
-using Google.Apis.Auth;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Configuration;
@@ -17,13 +16,15 @@ public class AuthService : IAuthService
     private readonly IEmailService emailService;
     private readonly IConfiguration configuration;
     private readonly ITokenService tokenService;
+    private readonly IAuthProviderFactory authProviderFactory;
 
-    public AuthService(UserManager<User> userManager, IEmailService emailService, IConfiguration configuration, ITokenService tokenService)
+    public AuthService(UserManager<User> userManager, IEmailService emailService, IConfiguration configuration, ITokenService tokenService, IAuthProviderFactory authProviderFactory)
     {
         this.userManager = userManager;
         this.emailService = emailService;
         this.configuration = configuration;
         this.tokenService = tokenService;
+        this.authProviderFactory = authProviderFactory;
     }
 
     public async Task<Result> Register(RegisterRequest request, string userRole = "User")
@@ -141,35 +142,24 @@ public class AuthService : IAuthService
         return Result<LoginResponse>.Success(await GenerateAuthResponse(user));
     }
 
-    public async Task<Result<LoginResponse>> LoginWithGoogle(LoginWithGoogleRequest request)
+    public async Task<Result<LoginResponse>> LoginWithExternalProvider(LoginWithExternalProviderRequest request)
     {
-        GoogleJsonWebSignature.Payload idTokenPayload;
+        var provider = authProviderFactory.GetProvider(request.Provider);
 
-        // Vlidate the Id Token
-        try
-        {
-            var settings = new GoogleJsonWebSignature.ValidationSettings
-            {
-                Audience = [Environment.GetEnvironmentVariable("GOOGLE_CLIENT_ID")!]
-            };
+        var externalUser = await provider.Authenticate(request.IdToken);
 
-            idTokenPayload = await GoogleJsonWebSignature.ValidateAsync(request.IdToken, settings);
-        }
-        catch (InvalidJwtException ex)
-        {
-            return Result<LoginResponse>.Failure(ErrorCode.AUTH_EXTERNAL_LOGIN_FAILED, [ex.Message]);
-        }
+        if (externalUser is null)
+            return Result<LoginResponse>.Failure(
+                ErrorCode.AUTH_EXTERNAL_LOGIN_FAILED,
+                [$"Failed to login with {request.Provider}."]);
 
-        // Attempt to get the user by email.
-        var user = await userManager.FindByEmailAsync(idTokenPayload.Email);
+        var user = await GetOrCreateUser(externalUser);
 
-        // Register the user if he is not exist.
         if (user is null)
-        {
-            user = await CreateUserWithGoogleCredentials(idTokenPayload);
-            if (user is null)
-                return Result<LoginResponse>.Failure(ErrorCode.AUTH_EXTERNAL_LOGIN_FAILED, ["Faild to signup with google."]);
-        }
+            return Result<LoginResponse>.Failure(
+                ErrorCode.AUTH_EXTERNAL_LOGIN_FAILED,
+                [$"Failed to signup with {request.Provider}."]);
+
 
         return Result<LoginResponse>.Success(await GenerateAuthResponse(user));
     }
@@ -242,32 +232,6 @@ public class AuthService : IAuthService
     }
 
 
-    private async Task<User?> CreateUserWithGoogleCredentials(GoogleJsonWebSignature.Payload payload)
-    {
-        var user = new User
-        {
-            FirstName = payload.GivenName,
-            LastName = payload.FamilyName,
-            ProfilePictureUrl = payload.Picture,
-            UserName = payload.Email,
-            Email = payload.Email,
-            EmailConfirmed = true,
-        };
-
-        var result = await userManager.CreateAsync(user);
-        if (!result.Succeeded)
-            return null;
-
-        var roleResult = await userManager.AddToRoleAsync(user, "User");
-        if (!roleResult.Succeeded)
-        {
-            await userManager.DeleteAsync(user);
-            return null;
-        }
-
-        return user;
-    }
-
     private async Task<LoginResponse> GenerateAuthResponse(User user)
     {
         var roles = await userManager.GetRolesAsync(user);
@@ -277,5 +241,38 @@ public class AuthService : IAuthService
         await tokenService.AssignRefreshToken(user.Id, refreshToken);
 
         return user.ToLoginResponse(roles.First(), accessToken, refreshToken);
+    }
+
+    private async Task<User?> GetOrCreateUser(ExternalUserInfo externalUser)
+    {
+        var user = await userManager.FindByEmailAsync(externalUser.Email);
+
+        if (user is null)
+        {
+            user = new User
+            {
+                FirstName = externalUser.FirstName,
+                LastName = externalUser.LastName,
+                ProfilePictureUrl = externalUser.Picture,
+                UserName = externalUser.Email,
+                Email = externalUser.Email,
+                EmailConfirmed = true,
+            };
+
+            var result = await userManager.CreateAsync(user);
+            if (!result.Succeeded)
+            {
+                return null;
+            }
+
+            var roleResult = await userManager.AddToRoleAsync(user, "User");
+            if (!roleResult.Succeeded)
+            {
+                await userManager.DeleteAsync(user);
+                return null;
+            }
+        }
+
+        return user;
     }
 }
