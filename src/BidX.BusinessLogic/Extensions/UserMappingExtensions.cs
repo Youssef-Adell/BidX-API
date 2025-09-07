@@ -17,11 +17,12 @@ public static class UserMappingExtensions
         };
     }
 
-    public static LoginResponse ToLoginResponse(this User user, string role, string accessToken)
+    public static LoginResponse ToLoginResponse(this User user, string role, string accessToken, string refreshToken)
     {
         return new LoginResponse
         {
-            User = new UserInfo{
+            User = new UserInfo
+            {
                 Id = user.Id,
                 Email = user.Email!,
                 FirstName = user.FirstName,
@@ -30,7 +31,7 @@ public static class UserMappingExtensions
                 Role = role,
             },
             AccessToken = accessToken,
-            RefreshToken = user.RefreshToken!,
+            RefreshToken = refreshToken,
         };
     }
 

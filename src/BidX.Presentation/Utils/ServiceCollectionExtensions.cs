@@ -177,6 +177,9 @@ public static class ServiceCollectionExtensions
 
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
+        services.AddScoped<IAuthProvider, GoogleAuthProvider>();
+        services.AddScoped<IAuthProviderFactory, AuthProviderFactory>();
+        services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IEmailService, BrevoEmailService>();
         services.AddScoped<ICitiesService, CitiesServices>();
