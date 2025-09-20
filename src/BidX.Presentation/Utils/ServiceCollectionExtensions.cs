@@ -2,10 +2,12 @@ using System.Reflection;
 using System.Text;
 using System.Text.Json.Serialization;
 using BidX.BusinessLogic.DTOs.CommonDTOs;
+using BidX.BusinessLogic.Events;
 using BidX.BusinessLogic.Interfaces;
 using BidX.BusinessLogic.Services;
 using BidX.DataAccess;
 using BidX.DataAccess.Entites;
+using BidX.Presentation.BackgroundJobs;
 using BidX.Presentation.Hubs;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -13,6 +15,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Quartz;
 using Swashbuckle.AspNetCore.Filters;
 
 namespace BidX.Presentation.Utils;
@@ -171,6 +174,42 @@ public static class ServiceCollectionExtensions
                       .AllowAnyHeader()
                       .AllowCredentials());
         });
+
+        return services;
+    }
+
+    public static IServiceCollection AddAndConfigureMediatR(this IServiceCollection services)
+    {
+        services.AddMediatR(cfg =>
+        {
+            cfg.RegisterServicesFromAssembly(typeof(BidPlacedEvent).Assembly);
+        });
+
+        return services;
+    }
+
+    public static IServiceCollection AddAndConfigureQuartz(this IServiceCollection services)
+    {
+        services.AddQuartz(options =>
+        {
+            var jobKey = new JobKey("OutboxProcessorJob");
+            options.AddJob<OutboxProcessorJob>(options => options.WithIdentity(jobKey));
+
+            options.AddTrigger(options => options
+                .ForJob(jobKey)
+                .WithIdentity($"{jobKey}Trigger")
+                .StartNow()
+                .WithSimpleSchedule(builder => builder
+                    .WithIntervalInSeconds(1)
+                    .RepeatForever())
+                );
+        });
+
+        services.AddQuartzHostedService(options => options.WaitForJobsToComplete = true);
+
+        // Register the assembly of events because it is needed in the job for resolving the event type of the outbox messages
+        var eventsAssembly = typeof(BidPlacedEvent).Assembly;
+        services.AddSingleton(eventsAssembly);
 
         return services;
     }

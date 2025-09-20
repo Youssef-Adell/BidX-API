@@ -3,6 +3,7 @@
     <PackageReference Include="CloudinaryDotNet" Version="1.27.1" />
     <PackageReference Include="File.TypeChecker" Version="4.1.1" />
     <PackageReference Include="Google.Apis.Auth" Version="1.69.0" />
+    <PackageReference Include="MediatR" Version="13.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="9.0.1" />
     <PackageReference Include="sib_api_v3_sdk" Version="4.0.2" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.3.1" />

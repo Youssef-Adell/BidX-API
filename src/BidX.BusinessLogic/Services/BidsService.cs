@@ -1,7 +1,9 @@
+using System.Text.Json;
 using BidX.BusinessLogic.DTOs.BidDTOs;
 using BidX.BusinessLogic.DTOs.CommonDTOs;
 using BidX.BusinessLogic.DTOs.NotificationDTOs;
 using BidX.BusinessLogic.DTOs.QueryParamsDTOs;
+using BidX.BusinessLogic.Events;
 using BidX.BusinessLogic.Extensions;
 using BidX.BusinessLogic.Interfaces;
 using BidX.BusinessLogic.Mappings;
@@ -99,7 +101,7 @@ public class BidsService : IBidsService
 
     public async Task PlaceBid(int bidderId, BidRequest request)
     {
-        var auctionInfo = await appDbContext.Auctions
+        var contextData = await appDbContext.Auctions
             .AsNoTracking()
             .Where(a => a.Id == request.AuctionId)
             .Select(a => new
@@ -122,18 +124,18 @@ public class BidsService : IBidsService
 
 
         // Validate
-        if (auctionInfo is null)
+        if (contextData is null)
         {
             await realTimeService.SendErrorToUser(bidderId, ErrorCode.RESOURCE_NOT_FOUND, ["Auction not found."]);
             return;
         }
 
         var validationResult = ValidateBidPlacement(
-            auctionEndTime: auctionInfo.EndTime,
-            auctionStartingPrice: auctionInfo.StartingPrice,
-            highestBidAmount: auctionInfo.HighestBid?.Amount,
-            auctionMinBidIncrement: auctionInfo.MinBidIncrement,
-            auctioneerId: auctionInfo.AuctioneerId,
+            auctionEndTime: contextData.EndTime,
+            auctionStartingPrice: contextData.StartingPrice,
+            highestBidAmount: contextData.HighestBid?.Amount,
+            auctionMinBidIncrement: contextData.MinBidIncrement,
+            auctioneerId: contextData.AuctioneerId,
             bidderId: bidderId,
             bidAmount: request.Amount);
 
@@ -143,37 +145,36 @@ public class BidsService : IBidsService
             return;
         }
 
+        // Create and save the bid
+        var bid = request.ToBidEntity(bidderId);
+        appDbContext.Add(bid);
 
-        using var transaction = await appDbContext.Database.BeginTransactionAsync();
-        try
+        // Create the outbox message
+        var bidPlacedEvent = new BidPlacedEvent
         {
-            // Create and save the bid
-            var bid = request.ToBidEntity(bidderId);
-            appDbContext.Bids.Add(bid);
-            await appDbContext.SaveChangesAsync();
+            BidAmount = bid.Amount,
+            BidderId = bidderId,
+            AuctionId = request.AuctionId,
+            AuctionProductName = contextData.ProductName,
+            AuctioneerId = contextData.AuctioneerId,
+            PreviousHighBidderId = contextData.HighestBid?.BidderId
+        };
 
-            // Send the notifications
-            await notificationsService.SendPlacedBidNotifications(
-                auctionId: request.AuctionId,
-                auctionTitle: auctionInfo.ProductName,
-                bidAmount: bid.Amount,
-                bidderId: bidderId,
-                auctioneerId: auctionInfo.AuctioneerId,
-                previousHighestBidderId: auctionInfo.HighestBid?.BidderId);
-
-            // Send the realtime updates
-            var response = bid.ToBidResponse(auctionInfo.Bidder.FullName, auctionInfo.Bidder.ProfilePictureUrl, auctionInfo.Bidder.AverageRating);
-            await Task.WhenAll(
-                realTimeService.SendPlacedBidToAuctionRoom(response.AuctionId, response),
-                realTimeService.UpdateAuctionPriceInFeed(response.AuctionId, response.Amount));
-
-            await transaction.CommitAsync();
-        }
-        catch (Exception)
+        var outboxMessage = new OutboxMessage
         {
-            await transaction.RollbackAsync();
-            await realTimeService.SendErrorToUser(bidderId, ErrorCode.SERVER_INTENRAL_ERROR, ["An error occurred while placing the bid."]);
-        }
+            Type = typeof(BidPlacedEvent).FullName!,
+            Content = JsonSerializer.Serialize(bidPlacedEvent),
+            CreatedAt = DateTimeOffset.UtcNow,
+        };
+        appDbContext.Add(outboxMessage);
+
+        await appDbContext.SaveChangesAsync();
+
+        var bidResponse = bid.ToBidResponse(contextData.Bidder!.FullName, contextData.Bidder.ProfilePictureUrl, contextData.Bidder.AverageRating);
+        await Task.WhenAll(
+            realTimeService.SendPlacedBidToAuctionRoom(bidResponse.AuctionId, bidResponse),
+            realTimeService.UpdateAuctionPriceInFeed(bidResponse.AuctionId, bidResponse.Amount)
+        );
     }
 
     public async Task AcceptBid(int callerId, AcceptBidRequest request)

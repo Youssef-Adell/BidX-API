@@ -1,6 +1,7 @@
 using BidX.BusinessLogic.DTOs.CommonDTOs;
 using BidX.BusinessLogic.DTOs.NotificationDTOs;
 using BidX.BusinessLogic.DTOs.QueryParamsDTOs;
+using BidX.BusinessLogic.Events;
 using BidX.BusinessLogic.Extensions;
 using BidX.BusinessLogic.Interfaces;
 using BidX.DataAccess;
@@ -64,38 +65,38 @@ public class NotificationsService : INotificationsService
             await realTimeService.NotifyUserWithUnreadNotificationsCount(userId, unreadNotificationsCount);
     }
 
-    public async Task SendPlacedBidNotifications(int auctionId, string auctionTitle, decimal bidAmount, int bidderId, int auctioneerId, int? previousHighestBidderId)
+    public async Task SendPlacedBidNotifications(BidPlacedEvent evt)
     {
         var notifications = new List<Notification>();
 
         // Notification for auctioneer
         notifications.Add(new Notification
         {
-            Message = $"**{{issuerName}}** placed a bid of **{bidAmount} EGP** on your **{auctionTitle}** auction", // **X** X will be formatted as bold in frontend
+            Message = $"**{{issuerName}}** placed a bid of **{evt.BidAmount} EGP** on your **{evt.AuctionProductName}** auction", // **X** X will be formatted as bold in frontend
             RedirectTo = RedirectTo.AuctionPage,
-            RedirectId = auctionId,
-            IssuerId = bidderId,
+            RedirectId = evt.AuctionId,
+            IssuerId = evt.BidderId,
             CreatedAt = DateTimeOffset.UtcNow,
-            NotificationRecipients = [new() { RecipientId = auctioneerId }]
+            NotificationRecipients = [new() { RecipientId = evt.AuctioneerId }]
         });
 
 
         // Notification for previous highest bidder if exists
-        if (previousHighestBidderId.HasValue && previousHighestBidderId.Value != bidderId)
+        if (evt.PreviousHighBidderId.HasValue && evt.PreviousHighBidderId.Value != evt.BidderId)
         {
             notifications.Add(new Notification
             {
-                Message = $"**{{issuerName}}** outbid you with **{bidAmount} EGP** on **{auctionTitle}** auction",
+                Message = $"**{{issuerName}}** outbid you with **{evt.BidAmount} EGP** on **{evt.AuctionProductName}** auction",
                 RedirectTo = RedirectTo.AuctionPage,
-                RedirectId = auctionId,
-                IssuerId = bidderId,
+                RedirectId = evt.AuctionId,
+                IssuerId = evt.BidderId,
                 CreatedAt = DateTimeOffset.UtcNow,
-                NotificationRecipients = [new() { RecipientId = previousHighestBidderId.Value }]
+                NotificationRecipients = [new() { RecipientId = evt.PreviousHighBidderId.Value }]
             });
         }
 
-        await BulkInsertNotifications(notifications);
-        await SendRealTimeNotifications(notifications);
+        await SaveNotifications(notifications);
+        await NotifyUsersThatTheyGotNotification(notifications);
     }
 
     public async Task SendAcceptedBidNotifications(int auctionId, string auctionTitle, int winnerId, int auctioneerId, IEnumerable<int> bidderIds)
@@ -130,41 +131,34 @@ public class NotificationsService : INotificationsService
             NotificationRecipients = otherBidders
         });
 
-        await BulkInsertNotifications(notifications);
-        await SendRealTimeNotifications(notifications);
+        await SaveNotifications(notifications);
+        await NotifyUsersThatTheyGotNotification(notifications);
     }
 
 
-    private async Task BulkInsertNotifications(IEnumerable<Notification> notifications)
+    private async Task SaveNotifications(IEnumerable<Notification> notifications)
     {
         appDbContext.Notifications.AddRange(notifications);
         await appDbContext.SaveChangesAsync();
     }
 
-    private async Task SendRealTimeNotifications(IEnumerable<Notification> notifications)
+    private async Task NotifyUsersThatTheyGotNotification(IEnumerable<Notification> notifications)
     {
-        // Get unique recipient IDs to avoid duplicate queries
         var uniqueRecipientIds = notifications
             .SelectMany(n => n.NotificationRecipients!)
             .Select(nr => nr.RecipientId)
             .Distinct()
             .ToList();
 
-        // Single database query to get all unread counts
         var unreadCountsMap = await GetUnreadNotificationsCounts(uniqueRecipientIds);
 
-        var tasks = new List<Task>();
-
-        foreach (var notification in notifications)
-        {
-            tasks.AddRange(notification.NotificationRecipients!
-                .Select(nr =>
-                    realTimeService.NotifyUserWithUnreadNotificationsCount(
-                        nr.RecipientId,
-                        unreadCountsMap[nr.RecipientId]
-                    )
-                ));
-        }
+        var tasks = uniqueRecipientIds
+            .Select(recipientId =>
+                realTimeService.NotifyUserWithUnreadNotificationsCount(
+                    recipientId,
+                    unreadCountsMap[recipientId]
+                )
+            );
 
         await Task.WhenAll(tasks);
     }

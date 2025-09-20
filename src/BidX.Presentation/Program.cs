@@ -15,6 +15,8 @@ builder.Services
     .AddAndConfigureIdentity()
     .AddAndConfigureJwtAuthentication()
     .AddAndConfigureSignalR()
+    .AddAndConfigureMediatR()
+    .AddAndConfigureQuartz()
     .AddAndConfigureCors(builder.Configuration)
     .AddApplicationServices();
 
