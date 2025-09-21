@@ -13,6 +13,10 @@ public class NotificationRecipientConfig : IEntityTypeConfiguration<Notification
         //  - Marking a notification as read (Where RecipientId = x AND NotificationId = y)
         builder.HasKey(nr => new { nr.RecipientId, nr.NotificationId });
 
+        // To ensure that a recipient gets only one notification per event
+        builder.HasIndex(nr => new { nr.RecipientId, nr.EventId })
+            .IsUnique();
+
         builder.HasOne(nr => nr.Notification)
             .WithMany(n => n.NotificationRecipients)
             .HasForeignKey(nr => nr.NotificationId);

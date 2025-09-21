@@ -4,6 +4,7 @@ using BidX.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BidX.DataAccess.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250920002903_Add index for OutboxMessage entity")]
+    partial class AddindexforOutboxMessageentity
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -288,18 +291,12 @@ namespace BidX.DataAccess.Migrations
                     b.Property<int>("NotificationId")
                         .HasColumnType("int");
 
-                    b.Property<Guid>("EventId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<bool>("IsRead")
                         .HasColumnType("bit");
 
                     b.HasKey("RecipientId", "NotificationId");
 
                     b.HasIndex("NotificationId");
-
-                    b.HasIndex("RecipientId", "EventId")
-                        .IsUnique();
 
                     b.ToTable("NotificationRecipient");
                 });

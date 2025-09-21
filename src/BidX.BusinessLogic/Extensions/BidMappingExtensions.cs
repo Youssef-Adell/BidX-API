@@ -1,4 +1,5 @@
 using BidX.BusinessLogic.DTOs.BidDTOs;
+using BidX.BusinessLogic.Events;
 using BidX.DataAccess.Entites;
 
 namespace BidX.BusinessLogic.Mappings;
@@ -35,6 +36,7 @@ public static class BidMappingExtensions
             }
         };
     }
+
     public static BidResponse ToBidResponse(this Bid bid, string bidderFullName, string? bidderProfilePictureUrl, decimal bidderAverageRating)
     {
         return new BidResponse

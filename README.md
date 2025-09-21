@@ -30,7 +30,9 @@
 - [ASP.NET Core Identity](https://learn.microsoft.com/en-us/aspnet/core/security/authentication/identity) - A membership system for managing users, authentication, and authorization in ASP.NET Core applications.
 - [JWT](https://jwt.io/) - A secure, compact token format used for transmitting information between parties as a JSON object.
 - [Serilog](https://serilog.net/) - A logging library that allows logging to various outputs like files, console, etc.
-- [Docker](https://www.docker.com/) - A containerization platform for packaging applications and their dependencies to ensure consistency across different environments.
+- [MediatR](https://github.com/jbogard/MediatR) - A simple, unambitious mediator implementation in .NET for in-process messaging.
+- [Quartz.NET](https://www.quartz-scheduler.net/) - An open source job scheduling system for .NET.
+- [Docker](https://www.docker.com/) - A containerization platform for packaging applications and their dependencies.
 
 ### Third-Party Services
 - [Google Identity Services (OpenID Connect)](https://developers.google.com/identity) - An authentication solution enabling secure sign-in with Google using OpenID Connect and OAuth 2.0.  
@@ -214,7 +216,7 @@ Errors triggered via `ErrorOccurred` event.
 Although I'm using the **EF Core Code First approach** (where the database is generated from the C# entity classes), I still prefer to start any project by designing the database and normalize it.
 
 ### ER Diagram
-![ER Diagram](docs/BidX_ERD_V4.png)
+![ER Diagram](docs/BidX_ERD_V5.png)
 
 ### Optimizations
 The database is optimized for performance through **strategic denormalization** and **Covering indexes**:  
@@ -306,4 +308,4 @@ docker-compose up --build
 - #### Image Moderation
   - Add automated checks to block inappropriate or harmful images uploaded by users.  
 - #### Rate Limiting
-  - Apply rate limits to critical endpoints to prevent abuse and ensure system stability.  
+  - Apply rate limits to critical endpoints to prevent abuse and ensure system stability.
