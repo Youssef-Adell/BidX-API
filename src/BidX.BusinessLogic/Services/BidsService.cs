@@ -179,7 +179,7 @@ public class BidsService : IBidsService
 
     public async Task AcceptBid(int callerId, AcceptBidRequest request)
     {
-        var bidInfo = await appDbContext.Bids
+        var contextData = await appDbContext.Bids
             .Where(b => b.Id == request.BidId)
             .Include(b => b.Auction)
             .Select(b => new
@@ -200,41 +200,40 @@ public class BidsService : IBidsService
 
 
         // Validate
-        var validationResult = ValidateBidAcceptance(callerId, bidInfo?.Bid);
+        var validationResult = ValidateBidAcceptance(callerId, contextData?.Bid);
         if (!validationResult.Succeeded)
         {
             await realTimeService.SendErrorToUser(callerId, validationResult.Error!);
             return;
         }
 
-        using var transaction = await appDbContext.Database.BeginTransactionAsync();
-        try
+        AcceptBidAndEndAuction(contextData!.Bid);
+
+        // Create the outbox message for bid accepted event
+        var bidAcceptedEvent = new BidAcceptedEvent
         {
-            // Accept and save
-            AcceptBidAndEndAuction(bidInfo!.Bid);
-            await appDbContext.SaveChangesAsync();
+            WinnerId = contextData.Bidder.Id,
+            AuctionId = contextData.Bid.Auction!.Id,
+            AuctionProductName = contextData.Bid.Auction.ProductName,
+            AuctioneerId = contextData.Bid.Auction.AuctioneerId,
+            BiddersIds = contextData.BidderIds.ToList()
+        };
 
-            // Send the notifications
-            await notificationsService.SendAcceptedBidNotifications(
-                auctionId: bidInfo.Bid.Auction!.Id,
-                auctionTitle: bidInfo.Bid.Auction.ProductName,
-                winnerId: bidInfo.Bidder.Id,
-                auctioneerId: bidInfo.Bid.Auction.AuctioneerId,
-                biddersIds: bidInfo.BidderIds);
-
-            // Send the realtime updates
-            var response = bidInfo.Bid.ToBidResponse(bidInfo.Bidder!.FullName, bidInfo.Bidder.ProfilePictureUrl, bidInfo.Bidder.AverageRating);
-            await Task.WhenAll(
-                realTimeService.SendAcceptedBidToAuctionRoom(response.AuctionId, response),
-                realTimeService.MarkAuctionAsEndedInFeed(response.AuctionId, response.Amount));
-
-            await transaction.CommitAsync();
-        }
-        catch (Exception)
+        var outboxMessage = new OutboxMessage
         {
-            await transaction.RollbackAsync();
-            await realTimeService.SendErrorToUser(callerId, ErrorCode.SERVER_INTENRAL_ERROR, ["An error occurred while accepting the bid."]);
-        }
+            Type = typeof(BidAcceptedEvent).FullName!,
+            Content = JsonSerializer.Serialize(bidAcceptedEvent),
+            CreatedAt = DateTimeOffset.UtcNow,
+        };
+        appDbContext.Add(outboxMessage);
+
+        await appDbContext.SaveChangesAsync();
+
+        // Send the realtime updates
+        var response = contextData.Bid.ToBidResponse(contextData.Bidder!.FullName, contextData.Bidder.ProfilePictureUrl, contextData.Bidder.AverageRating);
+        await Task.WhenAll(
+            realTimeService.SendAcceptedBidToAuctionRoom(response.AuctionId, response),
+            realTimeService.MarkAuctionAsEndedInFeed(response.AuctionId, response.Amount));
     }
 
 

@@ -182,7 +182,7 @@ public static class ServiceCollectionExtensions
     {
         services.AddMediatR(cfg =>
         {
-            cfg.RegisterServicesFromAssembly(typeof(BidPlacedEvent).Assembly);
+            cfg.RegisterServicesFromAssembly(typeof(BidAcceptedEvent).Assembly);
         });
 
         return services;
@@ -208,7 +208,7 @@ public static class ServiceCollectionExtensions
         services.AddQuartzHostedService(options => options.WaitForJobsToComplete = true);
 
         // Register the assembly of events because it is needed in the job for resolving the event type of the outbox messages
-        var eventsAssembly = typeof(BidPlacedEvent).Assembly;
+        var eventsAssembly = typeof(BidAcceptedEvent).Assembly;
         services.AddSingleton(eventsAssembly);
 
         return services;

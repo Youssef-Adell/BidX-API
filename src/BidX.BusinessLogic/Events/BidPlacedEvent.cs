@@ -2,9 +2,8 @@ using MediatR;
 
 namespace BidX.BusinessLogic.Events;
 
-public class BidPlacedEvent : INotification
+public class BidPlacedEvent : Event
 {
-    public Guid Id { get; init; } = Guid.NewGuid();
     public required decimal BidAmount { get; init; }
     public required int BidderId { get; init; }
     public required int AuctionId { get; init; }

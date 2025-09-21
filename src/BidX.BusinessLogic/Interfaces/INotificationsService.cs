@@ -12,5 +12,5 @@ public interface INotificationsService
     Task MarkAllNotificationsAsRead(int callerId);
     Task NotifyUserWithUnreadNotificationsCount(int userId);
     Task SendPlacedBidNotifications(BidPlacedEvent evt);
-    Task SendAcceptedBidNotifications(int auctionId, string auctionTitle, int winnerId, int auctioneerId, IEnumerable<int> biddersIds);
+    Task SendAcceptedBidNotifications(BidAcceptedEvent evt);
 }

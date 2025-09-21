@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using BidX.BusinessLogic.DTOs.CommonDTOs;
 using BidX.BusinessLogic.DTOs.NotificationDTOs;
 using BidX.BusinessLogic.DTOs.QueryParamsDTOs;
@@ -109,40 +108,49 @@ public class NotificationsService : INotificationsService
         }
     }
 
-    public async Task SendAcceptedBidNotifications(int auctionId, string auctionTitle, int winnerId, int auctioneerId, IEnumerable<int> bidderIds)
+    public async Task SendAcceptedBidNotifications(BidAcceptedEvent evt)
     {
         var notifications = new List<Notification>();
 
         // Notification for the winner
         notifications.Add(new Notification
         {
-            Message = $"Congratulations! Your bid on **{auctionTitle}** has been accepted by **{{issuerName}}**",
+            Message = $"Congratulations! Your bid on **{evt.AuctionProductName}** has been accepted by **{{issuerName}}**",
             RedirectTo = RedirectTo.AuctionPage,
-            RedirectId = auctionId,
-            IssuerId = auctioneerId,
+            RedirectId = evt.AuctionId,
+            IssuerId = evt.AuctioneerId,
             CreatedAt = DateTimeOffset.UtcNow,
-            NotificationRecipients = [new() { RecipientId = winnerId }]
+            NotificationRecipients = [new() { RecipientId = evt.WinnerId, EventId = evt.Id }]
         });
 
         // Notification for other bidders
-        var otherBidders = bidderIds
+        var otherBidders = evt.BiddersIds
             .Distinct()
-            .Where(id => id != winnerId)
-            .Select(id => new NotificationRecipient { RecipientId = id })
+            .Where(id => id != evt.WinnerId)
+            .Select(id => new NotificationRecipient { RecipientId = id, EventId = evt.Id })
             .ToList();
 
         notifications.Add(new Notification
         {
-            Message = $"Better luck next time! **{{issuerName}}** won the **{auctionTitle}** auction",
+            Message = $"Better luck next time! **{{issuerName}}** won the **{evt.AuctionProductName}** auction",
             RedirectTo = RedirectTo.AuctionPage,
-            RedirectId = auctionId,
-            IssuerId = winnerId,
+            RedirectId = evt.AuctionId,
+            IssuerId = evt.WinnerId,
             CreatedAt = DateTimeOffset.UtcNow,
             NotificationRecipients = otherBidders
         });
 
-        await SaveNotifications(notifications);
-        await NotifyUsersThatTheyGotNotification(notifications);
+        try
+        {
+            await SaveNotifications(notifications);
+            await NotifyUsersThatTheyGotNotification(notifications);
+        }
+        catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
+        {
+            // Skip if notifications for this event were already processed
+            // This ensures idempotency and prevents duplicate notifications
+            return;
+        }
     }
 
 
