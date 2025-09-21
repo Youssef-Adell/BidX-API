@@ -11,20 +11,24 @@ namespace BidX.Presentation.BackgroundJobs;
 [DisallowConcurrentExecution]
 public class OutboxProcessorJob : IJob
 {
-    private readonly AppDbContext appDbContext;
+    private readonly IDbContextFactory<AppDbContext> dbContextFactory;
     private readonly Assembly assembly;
     private readonly IMediator mediator;
 
-
-    public OutboxProcessorJob(AppDbContext appDbContext, Assembly assembly, IMediator mediator)
+    // Use DbContextFactory instead of injecting AppDbContext directly
+    // to avoid sharing the same AppDbContext instance with MediatR handlers and prevent EF Core change tracker conflicts.
+    public OutboxProcessorJob(IDbContextFactory<AppDbContext> dbContextFactory, Assembly assembly, IMediator mediator)
     {
-        this.appDbContext = appDbContext;
+        this.dbContextFactory = dbContextFactory;
         this.assembly = assembly;
         this.mediator = mediator;
     }
 
     public async Task Execute(IJobExecutionContext context)
     {
+        // fresh DbContext instance for this job execution (isolated from handlers)
+        using var appDbContext = await dbContextFactory.CreateDbContextAsync(context.CancellationToken);
+
         var messages = await appDbContext.OutboxMessages
             .Where(m => m.ProcessedAt == null)
             .OrderBy(m => m.CreatedAt)

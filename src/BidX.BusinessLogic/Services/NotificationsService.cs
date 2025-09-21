@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using BidX.BusinessLogic.DTOs.CommonDTOs;
 using BidX.BusinessLogic.DTOs.NotificationDTOs;
 using BidX.BusinessLogic.DTOs.QueryParamsDTOs;
@@ -77,7 +78,7 @@ public class NotificationsService : INotificationsService
             RedirectId = evt.AuctionId,
             IssuerId = evt.BidderId,
             CreatedAt = DateTimeOffset.UtcNow,
-            NotificationRecipients = [new() { RecipientId = evt.AuctioneerId }]
+            NotificationRecipients = [new() { RecipientId = evt.AuctioneerId, EventId = evt.Id }]
         });
 
 
@@ -91,12 +92,21 @@ public class NotificationsService : INotificationsService
                 RedirectId = evt.AuctionId,
                 IssuerId = evt.BidderId,
                 CreatedAt = DateTimeOffset.UtcNow,
-                NotificationRecipients = [new() { RecipientId = evt.PreviousHighBidderId.Value }]
+                NotificationRecipients = [new() { RecipientId = evt.PreviousHighBidderId.Value, EventId = evt.Id }]
             });
         }
 
-        await SaveNotifications(notifications);
-        await NotifyUsersThatTheyGotNotification(notifications);
+        try
+        {
+            await SaveNotifications(notifications);
+            await NotifyUsersThatTheyGotNotification(notifications);
+        }
+        catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
+        {
+            // Skip if notifications for this event were already processed
+            // This ensures idempotency and prevents duplicate notifications
+            return;
+        }
     }
 
     public async Task SendAcceptedBidNotifications(int auctionId, string auctionTitle, int winnerId, int auctioneerId, IEnumerable<int> bidderIds)
@@ -189,4 +199,11 @@ public class NotificationsService : INotificationsService
         return unreadCounts;
     }
 
+    private bool IsUniqueConstraintViolation(DbUpdateException ex)
+    {
+        // Check if the database exception is due to a unique constraint violation
+        // This occurs when trying to insert a duplicate EventId + RecipientId combination
+
+        return ex.InnerException?.Message?.Contains("duplicate") ?? false;
+    }
 }

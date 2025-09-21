@@ -91,7 +91,7 @@ public static class ServiceCollectionExtensions
 
     public static IServiceCollection AddAndConfigureDBContext(this IServiceCollection services)
     {
-        services.AddDbContext<AppDbContext>(options =>
+        services.AddDbContextFactory<AppDbContext>(options =>
             options.UseSqlServer(Environment.GetEnvironmentVariable("BIDX_DB_CONNECTION_STRING")));
 
         return services;
